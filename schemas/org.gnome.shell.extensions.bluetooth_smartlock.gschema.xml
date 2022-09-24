@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-shell-extensions">
+    <schema id="org.gnome.shell.extensions.bluetooth_smartlock" path="/org/gnome/shell/extensions/bluetooth_smartlock/">
+        <key name="active" type="b">
+            <default>true</default>
+            <summary>Activate</summary>
+        </key>
+        <key name="indicator" type="b">
+            <default>false</default>
+            <summary>Hide or show indicator</summary>
+        </key>
+        <key name="interval" type="i">
+            <default>30</default>
+            <summary>Scan interval (seconds)</summary>
+        </key>
+
+        <key name="duration" type="i">
+            <default>1</default>
+            <summary>Away duration (minutes)</summary>
+        </key>
+        <key name="mac" type="s">
+            <default>''</default>
+            <summary>Device mac address for tracking</summary>
+        </key>
+    </schema>
+</schemalist>
