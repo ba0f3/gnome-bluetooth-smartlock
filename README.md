@@ -18,4 +18,4 @@ When your device is out of bluetooth range or disconnected, in one minute (confi
 
 ### Installation from extensions.gnome.org
 
-https://extensions.gnome.org/
+https://extensions.gnome.org/extension/5359/bluetooth-smart-lock/
