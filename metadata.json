@@ -1,6 +1,6 @@
 {
   "name": "Bluetooth Smart Lock",
-  "description": "Lock your PC automatically when you step away",
+  "description": "Lock your desktop automatically when you step away",
   "uuid": "smartlock@huy.im",
   "settings-schema": "org.gnome.shell.extensions.bluetooth_smartlock",
   "url": "https://github.com/ba0f3/gnome-bluetooth-smartlock",
