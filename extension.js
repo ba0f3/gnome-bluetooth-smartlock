@@ -18,49 +18,51 @@
 
 /* exported init */
 
-const { GObject, St } = imports.gi;
-
 const Main = imports.ui.main;
 const ExtensionUtils = imports.misc.extensionUtils;
 
 const Me = ExtensionUtils.getCurrentExtension();
-const { Settings } = Me.imports.settings;
-const { SmartLock } = Me.imports.smartlock;
-const { Indicator } = Me.imports.indicator;
+const {Settings} = Me.imports.settings;
+const {SmartLock} = Me.imports.smartlock;
+const {Indicator} = Me.imports.indicator;
 const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
 const _ = Gettext.gettext;
 
 
 class Extension {
-  constructor(uuid) {
-    this._uuid = uuid;
-    ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
-  }
-
-  enable() {
-    this._indicator = new Indicator();
-    this._settings = new Settings();
-    Main.panel.addToStatusArea(this._uuid, this._indicator);
-
-    if (this._settings.getHideIndicator()) {
-      Main.panel.statusArea[this._uuid].hide();
+    constructor(uuid) {
+        this._uuid = uuid;
+        ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
     }
 
-    this._smartLock = new SmartLock();
-    this._smartLock.enable();
-  }
+    enable() {
+        this._indicator = new Indicator();
+        this._settings = new Settings();
+        Main.panel.addToStatusArea(this._uuid, this._indicator);
 
-  disable() {
-    this._indicator.destroy();
-    this._indicator = null;
+        if (this._settings.getHideIndicator())
+            Main.panel.statusArea[this._uuid].hide();
 
-    this._settings = null;
+        this._smartLock = new SmartLock();
+        this._smartLock.enable();
+    }
 
-    this._smartLock.disable();
-    this._smartLock = null;
-  }
+    disable() {
+        this._indicator.destroy();
+        this._indicator = null;
+
+        this._settings = null;
+
+        this._smartLock.disable();
+        this._smartLock = null;
+    }
 }
 
+/**
+ * Steps to run on initialization of the extension
+ *
+ * @param {Extension} meta The extension
+ */
 function init(meta) {
-  return new Extension(meta.uuid);
+    return new Extension(meta.uuid);
 }
