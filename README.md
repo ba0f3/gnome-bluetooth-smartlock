@@ -1,6 +1,6 @@
 # Bluetooth Smart Lock
 
-This extension will lock your desktop automatically when you step away
+Dynamic lock for GNOME. Lock your desktop automatically when you step away.
 
 ## Usage
 
