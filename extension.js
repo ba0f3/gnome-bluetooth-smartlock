@@ -34,12 +34,12 @@ const _ = Gettext.gettext;
 class Extension {
   constructor(uuid) {
     this._uuid = uuid;
-    this._settings = new Settings();
     ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
   }
 
   enable() {
     this._indicator = new Indicator();
+    this._settings = new Settings();
     Main.panel.addToStatusArea(this._uuid, this._indicator);
 
     if (this._settings.getHideIndicator()) {

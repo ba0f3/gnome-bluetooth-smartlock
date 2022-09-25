@@ -43,11 +43,11 @@ var Indicator = GObject.registerClass(
 
       let settings_menu = new PopupMenu.PopupMenuItem(_('Settings'));
       settings_menu.connect('activate', () => {
-        Util.spawn(['gnome-extensions', 'prefs', Me.metadata['uuid']]);
+        ExtensionUtils.openPrefs();
       });
       this.menu.addMenuItem(settings_menu);
 
-      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Devices')));
 
       let store = this._client.get_devices();
       let n_items = store.get_n_items();
