@@ -51,10 +51,10 @@ class Extension {
   }
 
   disable() {
-    if (this._indicator != null) {
-      this._indicator.destroy();
-      this._indicator = null;
-    }
+    this._indicator.destroy();
+    this._indicator = null;
+
+    this._settings = null;
 
     this._smartLock.disable();
     this._smartLock = null;
