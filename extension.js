@@ -61,8 +61,8 @@ class Extension {
         this._indicator.destroy();
         this._indicator = null;
 
-        if(this._indicatorChangeHandlerId)
-            this._settings._settings.disconnect(this._indicatorChangeHandlerId)
+        if (this._indicatorChangeHandlerId)
+            this._settings._settings.disconnect(this._indicatorChangeHandlerId);
 
         this._settings = null;
 

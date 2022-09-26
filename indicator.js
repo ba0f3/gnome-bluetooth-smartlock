@@ -41,7 +41,7 @@ var Indicator = GObject.registerClass(
             });
             this.menu.addMenuItem(activeMenu);
 
-            let icon = new Gio.ThemedIcon({ name: "emblem-system-symbolic" });
+            let icon = new Gio.ThemedIcon({name: 'emblem-system-symbolic'});
             let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
             settingsMenu.connect('activate', () => {
                 ExtensionUtils.openPrefs();

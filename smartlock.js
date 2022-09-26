@@ -43,7 +43,7 @@ var SmartLock = class SmartLock {
                 this._deviceAddress = this._settings.getDevice();
                 this._lastSeen = 0;
             }
-        })
+        });
 
         this._runLoop();
     }
@@ -51,8 +51,8 @@ var SmartLock = class SmartLock {
     disable() {
         this._log('Disabling extension');
 
-        if(this._deviceChangeHandlerId)
-            this._settings._settings.disconnect(this._deviceChangeHandlerId)
+        if (this._deviceChangeHandlerId)
+            this._settings._settings.disconnect(this._deviceChangeHandlerId);
 
         if (this._loop) {
             MainLoop.source_remove(this._loop);

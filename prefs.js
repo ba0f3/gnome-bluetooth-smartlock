@@ -29,7 +29,7 @@ class SettingsBuilder {
         this._container = this._builder.get_object('container');
         this._builder.get_object('advanced_button').connect('clicked', () => {
             let dialog = new Gtk.Dialog({
-                title: 'Advaned settings',
+                title: 'Advanced Settings',
                 transient_for: this._container.get_ancestor(Gtk.Window),
                 use_header_bar: true,
                 modal: true,

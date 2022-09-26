@@ -8,8 +8,8 @@ dist:
 	rm -f bluetooth-smartlock@ba0f3.github.com.shell-extension.zip
 	gnome-extensions pack -f --podir=po  --extra-source=icons --extra-source=indicator.js  --extra-source=perfs.js --extra-source=settings.js --extra-source=settings.ui  --extra-source=smartlock.js --extra-source=LICENSE --extra-source=README.md . --out-dir=./
 
-install:
-	gnome-extensions install -f bluetooth-smartlock@ba0f3.github.com.shell-extension.zip
+install: dist
+	gnome-extensions install -f smartlock@huy.im.shell-extension.zip
 
 clean:
 	rm -f schemas/gschemas.compiled

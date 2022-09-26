@@ -1,21 +1,43 @@
-# Bluetooth Smart Lock
+# Bluetooth Smart Lock ![Smart Lock icon](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/screenshots/icon.png)
 
-Dynamic lock for GNOME. Lock your desktop automatically when you step away.
+Dynamic lock for GNOME. Use your smart phone/watch/band to lock your desktop automatically when you step away.
+
+When your device is out of bluetooth range or get disconnected, it will lock your desktop automatically.
 
 ## Usage
 
-Once installed, an icon will added to your status bar. Click on it to select a paired device as smart lock.
+Click on *Smart Lock* icon to activate its menu, and select one of your paired devices as your smart lock
 
-When your device is out of bluetooth range or disconnected, in one minute (configurable), it will lock your desktop automatically.
+![Smart lock menu](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/screenshots/screenshot1.png)
+
 
 ** This extension will try to connects to your device frequently (for some reason (idk yet), `bluez` wont reconnect to smart phone after disconnected)
 
+### Settings
+
+![Settings](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/screenshots/screenshot2.png)
+
+The extension comes with default settings, but you can tweak them as your need.
+
+![Advanced settings](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/screenshots/screenshot3.png)
 ## Installation
 
 ### Requirements
 
- * bluez (on ubuntu: `sudo apt install bluez`)
+ * bluez (on debian based distro: `sudo apt install bluez`)
 
 ### Installation from extensions.gnome.org
 
 https://extensions.gnome.org/extension/5359/bluetooth-smart-lock/
+
+### Install from source
+
+Requires:
+* git
+* make
+
+```sh
+git clone https://github.com/ba0f3/gnome-bluetooth-smartlock.git
+cd gnome-bluetooth-smartlock
+make install
+```
