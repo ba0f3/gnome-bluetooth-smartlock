@@ -30,18 +30,19 @@ var Indicator = GObject.registerClass(
             });
             this.menu.addMenuItem(activeMenu);
 
-            this.menu.connect('open-state-changed', this.addDevices.bind(this));
+            this.menu.connect('open-state-changed', this._createMenu.bind(this));
         }
 
-        addDevices() {
+        _createMenu() {
             this.menu.removeAll();
-            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Active'), this._settings.getActive());
+            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
             activeMenu.connect('activate', self => {
                 this._settings.setActive(self.state);
             });
             this.menu.addMenuItem(activeMenu);
 
-            let settingsMenu = new PopupMenu.PopupMenuItem(_('Settings'));
+            let icon = new Gio.ThemedIcon({ name: "emblem-system-symbolic" });
+            let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
             settingsMenu.connect('activate', () => {
                 ExtensionUtils.openPrefs();
             });

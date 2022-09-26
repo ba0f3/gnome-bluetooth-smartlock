@@ -14,6 +14,7 @@ var SmartLock = class SmartLock {
         this._client = new GnomeBluetooth.Client();
         this._settings = new Settings();
         this._deviceAddress = this._settings.getDevice();
+        this._deviceChangeHandlerId = 0;
         this._lastSeen = 0;
     }
 
@@ -34,13 +35,28 @@ var SmartLock = class SmartLock {
 
     enable() {
         this._log('Enabling extension');
+
+        this._deviceChangeHandlerId = this._settings._settings.connect('changed::mac', () => {
+            // reset last seen when device changed
+            if (this._deviceAddress !== this._settings.getDevice()) {
+                this._log('Device changed');
+                this._deviceAddress = this._settings.getDevice();
+                this._lastSeen = 0;
+            }
+        })
+
         this._runLoop();
     }
 
     disable() {
         this._log('Disabling extension');
+
+        if(this._deviceChangeHandlerId)
+            this._settings._settings.disconnect(this._deviceChangeHandlerId)
+
         if (this._loop) {
             MainLoop.source_remove(this._loop);
+
             this._loop = null;
         }
     }
@@ -55,12 +71,6 @@ var SmartLock = class SmartLock {
     }
 
     scan() {
-        // reset last seen if device changed
-        if (this._deviceAddress !== this._settings.getDevice()) {
-            this._log('Device changed');
-            this._deviceAddress = this._settings.getDevice();
-            this._lastSeen = 0;
-        }
         // Screen shield is already locked or not active
         if (Main.screenShield.locked || !this._settings.getActive() || this._deviceAddress === '')
             return;
@@ -76,7 +86,7 @@ var SmartLock = class SmartLock {
                         // Only check for timeout if  we ever seen device once
                         if (this._lastSeen !== 0) {
                             let duration = (now - this._lastSeen) / 1000;
-                            if (duration >= this._settings.getAwayDuration() * 60) {
+                            if (duration >= this._settings.getAwayDuration()) {
                                 this._lastSeen = 0;
                                 this._log(`User stepped away for ${duration} seconds, locking the screen`);
                                 this.lock_screen();
