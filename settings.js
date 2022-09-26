@@ -4,7 +4,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 
 const SCAN_INTERVAL_KEY = 'interval';
 const ACTIVE_KEY = 'active';
-const AWAY_DURATION = 'duration';
+const AWAY_DURATION = 'duration-in-seconds';
 const HIDE_INDICATOR_KEY = 'indicator';
 const DEVICE_MAC_KEY = 'mac';
 

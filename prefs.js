@@ -47,7 +47,8 @@ class SettingsBuilder {
         this._settings.bind('active', this._builder.get_object('active_switch'), 'active', Gio.SettingsBindFlags.DEFAULT);
         this._settings.bind('indicator', this._builder.get_object('hide_indicator_switch'), 'active', Gio.SettingsBindFlags.DEFAULT);
         this._settings.bind('interval', this._builder.get_object('scan_interval'), 'value', Gio.SettingsBindFlags.DEFAULT);
-        this._settings.bind('duration', this._builder.get_object('duration'), 'value', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('duration-in-seconds', this._builder.get_object('duration'), 'value', Gio.SettingsBindFlags.DEFAULT);
+
 
         return this._container;
     }

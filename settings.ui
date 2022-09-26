@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-2.0-or-later
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkAdjustment" id="adjustment1">
-    <property name="lower">1</property>
-    <property name="upper">30</property>
+    <property name="lower">5</property>
+    <property name="upper">3600</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -90,7 +90,7 @@ SPDX-License-Identifier: GPL-2.0-or-later
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Away duration (minutes)</property>
+                        <property name="label" translatable="yes">Away duration (seconds)</property>
                       </object>
                     </child>
                     <child>

@@ -13,10 +13,9 @@
             <default>30</default>
             <summary>Scan interval (seconds)</summary>
         </key>
-
-        <key name="duration" type="i">
-            <default>1</default>
-            <summary>Away duration (minutes)</summary>
+        <key name="duration-in-seconds" type="i">
+            <default>60</default>
+            <summary>Away duration (seconds)</summary>
         </key>
         <key name="mac" type="s">
             <default>''</default>

@@ -32,6 +32,7 @@ const _ = Gettext.gettext;
 class Extension {
     constructor(uuid) {
         this._uuid = uuid;
+        this._indicatorChangeHandlerId = 0;
         ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
     }
 
@@ -40,8 +41,17 @@ class Extension {
         this._settings = new Settings();
         Main.panel.addToStatusArea(this._uuid, this._indicator);
 
+        // Set default state when extension enabled
         if (this._settings.getHideIndicator())
             Main.panel.statusArea[this._uuid].hide();
+
+        // Listen for indicator setting change
+        this._indicatorChangeSignal = this._settings._settings.connect('changed::indicator', () => {
+            if (this._settings.getHideIndicator())
+                Main.panel.statusArea[this._uuid].hide();
+            else
+                Main.panel.statusArea[this._uuid].show();
+        });
 
         this._smartLock = new SmartLock();
         this._smartLock.enable();
@@ -50,6 +60,9 @@ class Extension {
     disable() {
         this._indicator.destroy();
         this._indicator = null;
+
+        if(this._indicatorChangeHandlerId)
+            this._settings._settings.disconnect(this._indicatorChangeHandlerId)
 
         this._settings = null;
 
