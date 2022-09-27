@@ -20,8 +20,10 @@ var Indicator = GObject.registerClass(
             this._client = new GnomeBluetooth.Client();
             this._settings = new Settings();
 
+            let interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+            let iconScheme = interfaceSettings.get_string('color-scheme') === 'prefer-dark' ? 'white' : 'black';
             let icon = new St.Icon({style_class: 'system-status-icon'});
-            icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/smartlock-white.svg`);
+            icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/smartlock-${iconScheme}.svg`);
             this.add_child(icon);
 
             let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Active'), this._settings.getActive());
