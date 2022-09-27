@@ -174,7 +174,7 @@ SPDX-License-Identifier: GPL-2.0-or-later
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="hexpand">True</property>
-                                <property name="label" translatable="yes">Activavte</property>
+                                <property name="label" translatable="yes">Activate</property>
                               </object>
                             </child>
                           </object>
