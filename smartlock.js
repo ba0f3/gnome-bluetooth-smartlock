@@ -75,8 +75,8 @@ var SmartLock = class SmartLock {
     }
 
     scan() {
-        // Screen shield is already locked or not active
-        if (Main.screenShield.locked || !this._settings.getActive() || this._deviceAddress === '')
+        // If adapter stats is not ON or it or not active, do nothing
+        if (this._client.default_adapter_state != AdapterState.ON || !this._settings.getActive() || this._deviceAddress === '')
             return;
 
         try {
