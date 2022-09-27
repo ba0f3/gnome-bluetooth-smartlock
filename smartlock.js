@@ -6,8 +6,6 @@ const AdapterState = imports.gi.GnomeBluetooth.AdapterState;
 
 const Me = ExtensionUtils.getCurrentExtension();
 const {Settings} = Me.imports.settings;
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const _ = Gettext.gettext;
 
 // eslint-disable-next-line no-unused-vars
 var SmartLock = class SmartLock {
@@ -81,7 +79,7 @@ var SmartLock = class SmartLock {
 
     scan() {
         // If adapter stats is not ON or it or not active, do nothing
-        if (this._client.default_adapter_state != AdapterState.ON || !this._settings.getActive() || this._deviceAddress === '')
+        if (this._client.default_adapter_state !== AdapterState.ON || !this._settings.getActive() || this._deviceAddress === '')
             return;
 
         try {

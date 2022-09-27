@@ -4,7 +4,7 @@
   "uuid": "smartlock@huy.im",
   "settings-schema": "org.gnome.shell.extensions.bluetooth_smartlock",
   "url": "https://github.com/ba0f3/gnome-bluetooth-smartlock",
-  "gettext-domain": "bluetooth_smartlock",
+  "gettext-domain": "bluetooth-smartlock",
   "shell-version": [
     "42"
   ]

@@ -7,14 +7,14 @@ const Gtk = imports.gi.Gtk;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const {Settings} = Me.imports.settings;
-
+const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
+const _ = Gettext.gettext;
 /**
  * Steps to run on initialization of preferenences dialog
  */
 // eslint-disable-next-line no-unused-vars
 function init() {
-    log(`initializing ${Me.metadata.name} Preferences`);
-
+    log(`[bluetooth-smartlock] Initializing ${Me.metadata.name} Preferences`);
     ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
 }
 
@@ -29,7 +29,7 @@ class SettingsBuilder {
         this._container = this._builder.get_object('container');
         this._builder.get_object('advanced_button').connect('clicked', () => {
             let dialog = new Gtk.Dialog({
-                title: 'Advanced Settings',
+                title: _('Advanced Settings'),
                 transient_for: this._container.get_ancestor(Gtk.Window),
                 use_header_bar: true,
                 modal: true,

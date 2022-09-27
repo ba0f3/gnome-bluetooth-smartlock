@@ -25,15 +25,11 @@ const Me = ExtensionUtils.getCurrentExtension();
 const {Settings} = Me.imports.settings;
 const {SmartLock} = Me.imports.smartlock;
 const {Indicator} = Me.imports.indicator;
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const _ = Gettext.gettext;
-
 
 class Extension {
     constructor(uuid) {
         this._uuid = uuid;
         this._indicatorChangeHandlerId = 0;
-        ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
     }
 
     enable() {
@@ -77,5 +73,6 @@ class Extension {
  * @param {Extension} meta The extension
  */
 function init(meta) {
+    ExtensionUtils.initTranslations(Me.metadata['gettext-domain']);
     return new Extension(meta.uuid);
 }

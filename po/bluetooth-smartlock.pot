@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-27 16:03+0700\n"
+"POT-Creation-Date: 2022-09-28 00:45+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,18 +21,22 @@ msgstr ""
 msgid "Bluetooth Smartlock"
 msgstr ""
 
-#: indicator.js:27
+#: indicator.js:29
 msgid "Active"
 msgstr ""
 
-#: indicator.js:38
+#: indicator.js:40
 msgid "Smart Lock"
 msgstr ""
 
-#: indicator.js:45
+#: indicator.js:47
 msgid "Settings"
 msgstr ""
 
-#: indicator.js:51
+#: indicator.js:53
 msgid "Devices"
+msgstr ""
+
+#: prefs.js:32
+msgid "Advanced Settings"
 msgstr ""
