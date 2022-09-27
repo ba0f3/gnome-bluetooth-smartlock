@@ -13,7 +13,7 @@ var SmartLock = class SmartLock {
     constructor() {
         this._client = new GnomeBluetooth.Client();
         this._settings = new Settings();
-        this._deviceAddress = this._settings.getDevice();
+        this._deviceAddress = null;
         this._deviceChangeHandlerId = 0;
         this._lastSeen = 0;
     }
@@ -36,6 +36,8 @@ var SmartLock = class SmartLock {
     enable() {
         this._log('Enabling extension');
 
+        this._deviceAddress = this._settings.getDevice();
+
         this._deviceChangeHandlerId = this._settings._settings.connect('changed::mac', () => {
             // reset last seen when device changed
             if (this._deviceAddress !== this._settings.getDevice()) {
@@ -51,12 +53,14 @@ var SmartLock = class SmartLock {
     disable() {
         this._log('Disabling extension');
 
+        this._deviceAddress = null;
+        this._lastSeen = 0;
+
         if (this._deviceChangeHandlerId)
             this._settings._settings.disconnect(this._deviceChangeHandlerId);
 
         if (this._loop) {
             MainLoop.source_remove(this._loop);
-
             this._loop = null;
         }
     }
