@@ -2,6 +2,7 @@ const Main = imports.ui.main;
 const MainLoop = imports.mainloop;
 const ExtensionUtils = imports.misc.extensionUtils;
 const GnomeBluetooth = imports.gi.GnomeBluetooth;
+const AdapterState = imports.gi.GnomeBluetooth.AdapterState;
 
 const Me = ExtensionUtils.getCurrentExtension();
 const {Settings} = Me.imports.settings;
@@ -67,9 +68,13 @@ var SmartLock = class SmartLock {
 
     connect(device) {
         this._client.connect_service(device.get_object_path(), true, null, (sourceObject, res) => {
-            if (this._client.connect_service_finish(res)) {
-                this._log('Connected to device');
-                this._lastSeen = new Date().getTime();
+            try {
+                if (this._client.connect_service_finish(res)) {
+                    this._log('Connected to device');
+                    this._lastSeen = new Date().getTime();
+                }
+            } catch (error) {
+                this._log(`Error: ${error}`);
             }
         });
     }
