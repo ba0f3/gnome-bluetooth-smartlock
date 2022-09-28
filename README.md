@@ -4,6 +4,8 @@ Dynamic lock for GNOME. Use your smart phone/watch/band to lock your desktop aut
 
 When your device is out of bluetooth range or get disconnected, it will lock your desktop automatically.
 
+** This extension use **smart lock** icon by Andi from [Noun Project](https://thenounproject.com/browse/icons/term/smart-lock)
+
 ## Usage
 
 Click on *Smart Lock* icon to activate its menu, and select one of your paired devices as your smart lock
