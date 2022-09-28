@@ -1,4 +1,4 @@
-# Bluetooth Smart Lock ![Smart Lock icon](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/screenshots/icon.png)
+# Bluetooth Smart Lock ![Smart Lock black icon](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/icons/smartlock-black.svg)  ![Smart Lock white icon](https://raw.githubusercontent.com/ba0f3/gnome-bluetooth-smartlock/main/icons/smartlock-white.svg)
 
 Dynamic lock for GNOME. Use your smart phone/watch/band to lock your desktop automatically when you step away.
 
