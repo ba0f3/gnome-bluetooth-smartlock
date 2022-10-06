@@ -2,7 +2,6 @@ const Main = imports.ui.main;
 const MainLoop = imports.mainloop;
 const ExtensionUtils = imports.misc.extensionUtils;
 const GnomeBluetooth = imports.gi.GnomeBluetooth;
-const AdapterState = imports.gi.GnomeBluetooth.AdapterState;
 
 const Me = ExtensionUtils.getCurrentExtension();
 const {Settings} = Me.imports.settings;
@@ -78,8 +77,8 @@ var SmartLock = class SmartLock {
     }
 
     scan() {
-        // If adapter stats is not ON or it or not active, do nothing
-        if (this._client.default_adapter_state !== AdapterState.ON || !this._settings.getActive() || this._deviceAddress === '')
+        // If not active, do nothing
+        if (!this._settings.getActive() || this._deviceAddress === '')
             return;
 
         try {
