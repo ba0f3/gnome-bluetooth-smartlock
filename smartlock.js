@@ -1,16 +1,15 @@
-const Main = imports.ui.main;
-const MainLoop = imports.mainloop;
-const ExtensionUtils = imports.misc.extensionUtils;
-const GnomeBluetooth = imports.gi.GnomeBluetooth;
+import GnomeBluetooth from "gi://GnomeBluetooth";
+import GLib from 'gi://GLib';
 
-const Me = ExtensionUtils.getCurrentExtension();
-const {Settings} = Me.imports.settings;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+import Settings from './settings.js';
 
 // eslint-disable-next-line no-unused-vars
 var SmartLock = class SmartLock {
-    constructor() {
+    constructor(settings) {
         this._client = new GnomeBluetooth.Client();
-        this._settings = new Settings();
+        this._settings = settings;
         this._deviceAddress = null;
         this._deviceChangeHandlerId = 0;
         this._lastSeen = 0;
@@ -23,7 +22,7 @@ var SmartLock = class SmartLock {
     _runLoop() {
         const interval = this._settings.getScanInterval();
         this.scan();
-        this._loop = MainLoop.timeout_add_seconds(interval, this._runLoop.bind(this));
+        this._loop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, interval, this._runLoop.bind(this));
     }
 
     lock_screen() {
@@ -58,7 +57,7 @@ var SmartLock = class SmartLock {
             this._settings._settings.disconnect(this._deviceChangeHandlerId);
 
         if (this._loop) {
-            MainLoop.source_remove(this._loop);
+            GLib.source_remove(this._loop);
             this._loop = null;
         }
     }
@@ -111,3 +110,6 @@ var SmartLock = class SmartLock {
         }
     }
 };
+
+
+export default SmartLock

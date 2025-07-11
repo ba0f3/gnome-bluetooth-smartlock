@@ -1,69 +1,93 @@
-const {GObject, St} = imports.gi;
+import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import Gio from 'gi://Gio';
+import GnomeBluetooth from 'gi://GnomeBluetooth';
+import Settings from './settings.js'; // Ensure settings.js is also ESM compatible
+// Define your panel indicator button separately
+// Register the class and then export it
+class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name for the raw class
+    constructor() {
+        super(0.0, _('Bluetooth Smartlock'));
+  
+    }
 
-const Gio = imports.gi.Gio;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
-const ExtensionUtils = imports.misc.extensionUtils;
-const GnomeBluetooth = imports.gi.GnomeBluetooth;
+    init(extension, settings){
+        this._extension = extension;
+        this._client = new GnomeBluetooth.Client();
+        this._settings = settings; // Pass settings directly
 
-const Me = ExtensionUtils.getCurrentExtension();
-const Gettext = imports.gettext.domain(Me.metadata['gettext-domain']);
-const {Settings} = Me.imports.settings;
-const _ = Gettext.gettext;
+        const interfaceSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+        const iconScheme = interfaceSettings.get_string('color-scheme') === 'prefer-dark' ? 'white' : 'black';
 
+        let icon = new St.Icon({ style_class: 'system-status-icon' });
+        icon.gicon = Gio.icon_new_for_string(`${this._extension.path}/icons/smartlock-${iconScheme}.svg`);
+        this.add_child(icon);
 
-// eslint-disable-next-line no-unused-vars
-var Indicator = GObject.registerClass(
-    class Indicator extends PanelMenu.Button {
-        _init() {
-            super._init(0.0, _('Bluetooth Smartlock'));
-            this._client = new GnomeBluetooth.Client();
-            this._settings = new Settings();
+        // Initial menu item for "Smart Lock" active state
+        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
+        activeMenu.connect('activate', (item) => {
+            this._settings.setActive(item.state);
+        });
+        this.menu.addMenuItem(activeMenu);
 
-            let interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
-            let iconScheme = interfaceSettings.get_string('color-scheme') === 'prefer-dark' ? 'white' : 'black';
-            let icon = new St.Icon({style_class: 'system-status-icon'});
-            icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/smartlock-${iconScheme}.svg`);
-            this.add_child(icon);
+        this.menu.connect('open-state-changed', this._createMenu.bind(this));
+    }
 
-            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Active'), this._settings.getActive());
-            activeMenu.connect('activate', self => {
-                this._settings.setActive(self.state);
-            });
-            this.menu.addMenuItem(activeMenu);
+    _createMenu() {
+        this.menu.removeAll();
 
-            this.menu.connect('open-state-changed', this._createMenu.bind(this));
-        }
+        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
+        activeMenu.connect('activate', (item) => {
+            this._settings.setActive(item.state);
+        });
+        this.menu.addMenuItem(activeMenu);
 
-        _createMenu() {
-            this.menu.removeAll();
-            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
-            activeMenu.connect('activate', self => {
-                this._settings.setActive(self.state);
-            });
-            this.menu.addMenuItem(activeMenu);
+        let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
+        let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
+        settingsMenu.connect('activate', () => {
+            this._extension.openPreferences();
+        });
+        this.menu.addMenuItem(settingsMenu);
 
-            let icon = new Gio.ThemedIcon({name: 'emblem-system-symbolic'});
-            let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
-            settingsMenu.connect('activate', () => {
-                ExtensionUtils.openPrefs();
-            });
-            this.menu.addMenuItem(settingsMenu);
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Devices')));
 
-            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_('Devices')));
+        let store = this._client.get_devices();
+        let nItems = store.get_n_items();
 
-            let store = this._client.get_devices();
-            let nItems = store.get_n_items();
+        if (nItems === 0) {
+            let noDevicesItem = new PopupMenu.PopupMenuItem(_('No paired devices found'), { reactive: false });
+            this.menu.addMenuItem(noDevicesItem);
+        } else {
             for (let i = 0; i < nItems; i++) {
                 let device = store.get_item(i);
                 if (device.paired && device.name !== '') {
                     let address = device.address;
-                    let menu = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
-                    menu.connect('activate', () => {
+                    let menuItem = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
+                    menuItem.connect('activate', () => {
                         this._settings.setDevice(address);
                     });
-                    this.menu.addMenuItem(menu);
+                    this.menu.addMenuItem(menuItem);
                 }
             }
         }
-    });
+    }
+
+    destroy() {
+        if (this._client) {
+            this._client = null;
+        }
+        super.destroy();
+    }
+}
+
+// Export the registered class
+export default GObject.registerClass(
+    {
+        GTypeName: 'SmartlockIndicator',
+        Extends: PanelMenu.Button,
+    },
+    SmartlockIndicatorClass // Pass the class itself
+);
