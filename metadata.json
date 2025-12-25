@@ -1,7 +1,7 @@
 {
   "name": "Bluetooth Smart Lock",
   "description": "Dynamic lock for GNOME. Use your smart phone/watch/band to lock your desktop automatically when you step away.\n\nWhen your device is out of bluetooth range or get disconnected, it will lock your desktop automatically.",
-  "uuid": "gnome-bluetooth-smartlock@eleventeen",
+  "uuid": "bluetooth-smartlock@ba0f3.github.com",
   "settings-schema": "org.gnome.shell.extensions.bluetooth_smartlock",
   "url": "https://github.com/ba0f3/gnome-bluetooth-smartlock",
   "gettext-domain": "bluetooth-smartlock",
