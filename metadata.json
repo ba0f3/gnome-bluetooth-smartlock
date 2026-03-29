@@ -11,5 +11,6 @@
     "50"
   ],
   "version": 1,
-  "version-name": "1"
+  "version-name": "1",
+  "session-modes": ["user", "unlock-dialog"]
 }

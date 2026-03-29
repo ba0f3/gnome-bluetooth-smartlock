@@ -38,7 +38,7 @@ export default class BluetoothSmartLockExtension extends Extension {
 
         this._indicator = new Indicator();
         this._indicator.init(this, this._settings);
-        
+
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         if (this._settings.getHideIndicator())
@@ -51,6 +51,13 @@ export default class BluetoothSmartLockExtension extends Extension {
                 Main.panel.statusArea[this.uuid].show();
         });
 
+        this._sessionModeSignal = Main.sessionMode.connect('updated', () => {
+            if (Main.sessionMode.currentMode === 'unlock-dialog')
+                this._indicator.hide();
+            else if (!this._settings.getHideIndicator())
+                this._indicator.show();
+        });
+
         this._smartLock = new SmartLock(this._settings);
         this._smartLock.enable();
     }
@@ -61,6 +68,9 @@ export default class BluetoothSmartLockExtension extends Extension {
 
         if (this._indicatorChangeSignal)
             this._settings._settings.disconnect(this._indicatorChangeSignal);
+
+        if (this._sessionModeSignal)
+            Main.sessionMode.disconnect(this._sessionModeSignal);
 
         this._settings = null;
 
