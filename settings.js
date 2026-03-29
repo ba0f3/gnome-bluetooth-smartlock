@@ -5,6 +5,7 @@ const ACTIVE_KEY = 'active';
 const AWAY_DURATION = 'duration-in-seconds';
 const HIDE_INDICATOR_KEY = 'indicator';
 const DEVICE_MAC_KEY = 'mac';
+const AUTO_UNLOCK_KEY = 'auto-unlock';
 
 class Settings {
     init(settings) {
@@ -45,6 +46,13 @@ class Settings {
     setDevice(device) {
         if (device !== this.getDevice())
             this._settings.set_string(DEVICE_MAC_KEY, device);
+    }
+
+    getAutoUnlock() {
+        return this._settings.get_boolean(AUTO_UNLOCK_KEY);
+    }
+    setAutoUnlock(value) {
+        this._settings.set_boolean(AUTO_UNLOCK_KEY, value);
     }
 }
 

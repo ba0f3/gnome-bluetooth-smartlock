@@ -111,6 +111,12 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
+            'auto-unlock',
+            builder.get_object('auto_unlock_switch'),
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
             'interval',
             builder.get_object('scan_interval'),
             'value', // Gtk.SpinButton uses 'value'

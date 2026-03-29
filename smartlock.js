@@ -108,7 +108,7 @@ var SmartLock = class SmartLock {
                         this.connect(device);
                         this._deviceConnected = false;
                     } else {
-                        if (!this._deviceConnected)
+                        if (!this._deviceConnected && this._settings.getAutoUnlock())
                             this.unlock_screen();
                         this._deviceConnected = true;
                         this._lastSeen = now;

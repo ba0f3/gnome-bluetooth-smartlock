@@ -21,5 +21,9 @@
             <default>''</default>
             <summary>Device mac address for tracking</summary>
         </key>
+        <key name="auto-unlock" type="b">
+            <default>false</default>
+            <summary>Auto-unlock screen when device reconnects</summary>
+        </key>
     </schema>
 </schemalist>
