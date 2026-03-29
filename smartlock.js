@@ -13,6 +13,7 @@ var SmartLock = class SmartLock {
         this._deviceAddress = null;
         this._deviceChangeHandlerId = 0;
         this._lastSeen = 0;
+        this._deviceConnected = false;
     }
 
     _log(message) {
@@ -28,6 +29,11 @@ var SmartLock = class SmartLock {
     lock_screen() {
         Main.overview.hide();
         Main.screenShield.lock(true);
+    }
+
+    unlock_screen() {
+        this._log('Device reconnected, unlocking screen');
+        Main.screenShield.deactivate(false);
     }
 
     enable() {
@@ -52,6 +58,7 @@ var SmartLock = class SmartLock {
 
         this._deviceAddress = null;
         this._lastSeen = 0;
+        this._deviceConnected = false;
 
         if (this._deviceChangeHandlerId)
             this._settings._settings.disconnect(this._deviceChangeHandlerId);
@@ -99,7 +106,11 @@ var SmartLock = class SmartLock {
                         }
                         // Try to connect to target device, cause Linux wont auto reconnect on some devices like smart phones
                         this.connect(device);
+                        this._deviceConnected = false;
                     } else {
+                        if (!this._deviceConnected)
+                            this.unlock_screen();
+                        this._deviceConnected = true;
                         this._lastSeen = now;
                     }
                     break;
