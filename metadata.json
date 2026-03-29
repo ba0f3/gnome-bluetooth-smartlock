@@ -6,7 +6,9 @@
   "url": "https://github.com/ba0f3/gnome-bluetooth-smartlock",
   "gettext-domain": "bluetooth-smartlock",
   "shell-version": [
-    "48"
+    "48",
+    "49",
+    "50"
   ],
   "version": 1,
   "version-name": "1"
