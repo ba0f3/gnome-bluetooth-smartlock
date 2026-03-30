@@ -33,7 +33,9 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         });
         this.menu.addMenuItem(activeMenu);
 
-        this.menu.connect('open-state-changed', this._createMenu.bind(this));
+        this.menu.connect('open-state-changed', (menu, isOpen) => {
+            if (isOpen) this._createMenu();
+        });
 
         this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
         this._settings.connectActiveSignal(() => this._setIconColor(icon));
