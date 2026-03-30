@@ -77,7 +77,7 @@ const SmartLock = class SmartLock {
         let duration = this._settings.getAwayDuration() || 3; // Default to 60 seconds if not set
 
         this._settings.setLastSeen(0);
-        this._log(`BT -> Device ${device.address} is not connected, starting timer for ${device.duration} seconds.`);
+        this._log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
         this._lockTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             duration,   // delay in seconds before locking
