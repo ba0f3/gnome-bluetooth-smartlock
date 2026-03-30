@@ -2,10 +2,13 @@ import GLib from 'gi://GLib';
 const DBus = imports.gi.Gio.DBus;
 const Gio = imports.gi.Gio;
 
+const ADAPTER_PATH = '/org/bluez/hci0';
+
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
 let btPollTimeoutId = null;
 let pollLock = false;
+let discoveryActive = false;
 let allDevices = {};
 /**
  * Get a list of Bluetooth devices managed by BlueZ.
@@ -73,13 +76,14 @@ function getDevices() {
 }
 
 /**
- * Subscibe to device changes via D-Bus signals.
+ * Subscribe to device changes via D-Bus signals.
  * TODO: this does not handle devices that are removed from the system well
  * @param {*} cb 
  * @returns 
  */
 function subscribe(cb) {
     disconnect()
+    startDiscovery();
     signalSubscribePropertiesChangedId = DBus.system.signal_subscribe(
         'org.bluez',                         // sender
         'org.freedesktop.DBus.Properties',  // interface
@@ -92,14 +96,17 @@ function subscribe(cb) {
             if (ifaceName !== 'org.bluez.Device1') return;
 
             let address = path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+            let changedKeys = Object.keys(changedProps);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
-            let rssi = changedProps['RSSI']?.deep_unpack?.(); // RSSI might not be present, handle it gracefully
+            let rssi = changedProps['RSSI']?.deep_unpack?.();
+
+            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected} rssi=${rssi}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
                 address: address,
-                connected: isConnected,
-                rssi: rssi,
+                connected: isConnected ?? allDevices[address]?.connected ?? false,
+                rssi: rssi ?? allDevices[address]?.rssi,
                 visible: true
             }
 
@@ -120,6 +127,7 @@ function subscribe(cb) {
             let [removedPath, interfaces] = params.deep_unpack();
 
             let address = removedPath.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+            log(`[bluetooth-smartlock] DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
 
             if (interfaces.includes('org.bluez.Device1')) {
 
@@ -136,10 +144,71 @@ function subscribe(cb) {
     );
 }
 
+function startDiscovery() {
+    DBus.system.call(
+        'org.bluez',
+        ADAPTER_PATH,
+        'org.bluez.Adapter1',
+        'SetDiscoveryFilter',
+        new GLib.Variant('(a{sv})', [{ 'Transport': new GLib.Variant('s', 'auto') }]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        () => {
+            DBus.system.call(
+                'org.bluez',
+                ADAPTER_PATH,
+                'org.bluez.Adapter1',
+                'StartDiscovery',
+                null,
+                null,
+                Gio.DBusCallFlags.NONE,
+                -1,
+                null,
+                (conn, res) => {
+                    try {
+                        conn.call_finish(res);
+                        discoveryActive = true;
+                        log('[bluetooth-smartlock] Discovery started');
+                    } catch (e) {
+                        log(`[bluetooth-smartlock] Failed to start discovery: ${e.message}`);
+                    }
+                }
+            );
+        }
+    );
+}
+
+function stopDiscovery() {
+    if (!discoveryActive) return;
+    DBus.system.call(
+        'org.bluez',
+        ADAPTER_PATH,
+        'org.bluez.Adapter1',
+        'StopDiscovery',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (conn, res) => {
+            try {
+                conn.call_finish(res);
+                discoveryActive = false;
+                log('[bluetooth-smartlock] Discovery stopped');
+            } catch (e) {
+                log(`[bluetooth-smartlock] Failed to stop discovery: ${e.message}`);
+            }
+        }
+    );
+}
+
 /**
  * Disconnect from all D-Bus signals and clear any active polling.
  */
 function disconnect() {
+    stopDiscovery();
     if (signalSubscribePropertiesChangedId) {
         DBus.system.signal_unsubscribe(signalSubscribePropertiesChangedId);
         signalSubscribePropertiesChangedId = null;
@@ -154,5 +223,7 @@ function disconnect() {
 export default {
     getDevices,
     subscribe,
+    startDiscovery,
+    stopDiscovery,
     disconnect
 };
