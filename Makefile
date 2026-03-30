@@ -13,11 +13,17 @@ translate:
 build: ${PO_FILES}
 	glib-compile-schemas ./schemas
 
+EXTRA_SOURCES = icons bluetooth indicator.js settings.js settings.ui smartlock.js LICENSE README.md
+
 dist: build
-	gnome-extensions pack -f --podir=po --gettext-domain=${GETTEXT_DOMAIN}  --extra-source=icons --extra-source=indicator.js  --extra-source=perfs.js --extra-source=settings.js --extra-source=settings.ui  --extra-source=smartlock.js --extra-source=LICENSE --extra-source=README.md .
+	gnome-extensions pack -f --podir=po --gettext-domain=${GETTEXT_DOMAIN} $(addprefix --extra-source=,$(EXTRA_SOURCES)) .
 
 install: dist
 	gnome-extensions install -f bluetooth-smartlock@ba0f3.github.com.shell-extension.zip
+
+dev: build
+	rm -rf $(HOME)/.local/share/gnome-shell/extensions/bluetooth-smartlock@ba0f3.github.com
+	ln -snf $(CURDIR) $(HOME)/.local/share/gnome-shell/extensions/bluetooth-smartlock@ba0f3.github.com
 
 clean:
 	rm -f schemas/gschemas.compiled
