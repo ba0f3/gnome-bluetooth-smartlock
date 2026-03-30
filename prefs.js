@@ -3,7 +3,8 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw';
 
-import { isRssiServiceAvailable } from './bluetooth/rssi-service.js';
+import { isRssiServiceAvailable, RSSI_DBUS_NAME, RSSI_DBUS_PATH } from './bluetooth/rssi-service.js';
+import { logInfo, logWarn } from './log.js';
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -28,6 +29,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         // ExtensionPreferences provides this method, automatically linking
         // to your extension's GSettings schema based on its UUID.
         this._settings = this.getSettings();
+        const rssiAvailable = isRssiServiceAvailable();
 
         // Create a Gtk.Builder to load the UI from your settings.ui file.
         const builder = new Gtk.Builder();
@@ -65,7 +67,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             if (parentWindow instanceof Gtk.Window) {
                 dialog.set_transient_for(parentWindow);
             } else {
-                console.warn("Could not find a Gtk.Window parent for the preferences dialog.");
+                logWarn("Could not find a Gtk.Window parent for the preferences dialog.");
             }
 
             // Get the 'advanced_settings' box from the builder.
@@ -83,14 +85,65 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             // Append the advanced settings box to the dialog's content area.
             dialog.get_content_area().append(advancedSettingsBox);
 
+            // Live RSSI reading — subscribe to signals while dialog is open.
+            // StartMonitoring is idempotent: if the extension already started it,
+            // this is a no-op. We never call StopMonitoring to avoid interfering
+            // with the extension's monitor — the service's idle timeout handles cleanup.
+            let rssiSignalId = null;
+            const rssiRow = builder.get_object('rssi_reading_row');
+            const rssiValue = builder.get_object('rssi_reading_value');
+            const targetDevice = this._settings.get_string('mac');
+
+            if (rssiAvailable && targetDevice) {
+                rssiRow.visible = true;
+                const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
+
+                rssiSignalId = bus.signal_subscribe(
+                    RSSI_DBUS_NAME,
+                    RSSI_DBUS_NAME,
+                    'RssiUpdate',
+                    RSSI_DBUS_PATH,
+                    null,
+                    Gio.DBusSignalFlags.NONE,
+                    (_conn, _sender, _path, _iface, _signal, params) => {
+                        const [address, rssi] = params.deep_unpack();
+                        logInfo(`prefs RSSI: ${address} rssi=${rssi}`);
+                        if (address === targetDevice)
+                            rssiValue.label = `${rssi} dBm`;
+                    }
+                );
+
+                bus.call(
+                    RSSI_DBUS_NAME,
+                    RSSI_DBUS_PATH,
+                    RSSI_DBUS_NAME,
+                    'StartMonitoring',
+                    new GLib.Variant('(su)', [targetDevice, 2]),
+                    null,
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    null,
+                    (conn, res) => {
+                        try {
+                            conn.call_finish(res);
+                            logInfo(`prefs StartMonitoring OK for ${targetDevice}`);
+                        } catch (e) {
+                            logInfo(`prefs StartMonitoring failed: ${e.message}`);
+                            rssiValue.label = this.gettext('unavailable');
+                        }
+                    }
+                );
+            }
+
             // Connect to the 'response' signal to clean up when the dialog is closed.
             dialog.connect('response', () => {
-                // Remove the box from the dialog's content area.
+                if (rssiSignalId !== null) {
+                    const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
+                    bus.signal_unsubscribe(rssiSignalId);
+                }
+
                 dialog.get_content_area().remove(advancedSettingsBox);
-                // Destroy the advanced settings box and its children.
-                advancedSettingsBox.destroy();
-                // Destroy the dialog itself.
-                dialog.destroy();
+                dialog.close();
             });
 
             // Show the dialog.
@@ -144,7 +197,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 
         // Disable RSSI controls if the bt-rssi service is not installed.
         // Must run after settings.bind() which resets widget state.
-        if (!isRssiServiceAvailable()) {
+        if (!rssiAvailable) {
             const tooltip = this.gettext('bt-rssi service is not installed');
             for (const id of ['proximity_lock', 'rssi_threshold']) {
                 const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : 'rssi_threshold');
