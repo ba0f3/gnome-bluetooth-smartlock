@@ -19,7 +19,7 @@ const SmartLock = class SmartLock {
     }
 
     lock_screen() {
-        if (!Main.screenShield._locked) {
+        if (!Main.screenShield.locked) {
             Main.overview.hide();
             Main.screenShield.lock(true);
         }
@@ -63,6 +63,8 @@ const SmartLock = class SmartLock {
             this._log(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
             this._settings.setLastSeen(new Date().getTime());
             this._clearLockTimeout();
+            if (this._settings.getAutoUnlock() && Main.screenShield.locked)
+                this.unlock_screen();
             return;
         }
 
