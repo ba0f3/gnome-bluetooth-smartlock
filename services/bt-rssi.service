@@ -1,0 +1,30 @@
+[Unit]
+Description=Bluetooth RSSI D-Bus Service
+Documentation=https://github.com/ba0f3/gnome-bluetooth-smartlock
+After=bluetooth.service
+Wants=bluetooth.service
+
+[Service]
+Type=dbus
+BusName=org.gnome.BluetoothRSSI
+ExecStart=/usr/local/bin/bt-rssi
+Restart=on-failure
+
+# CAP_NET_ADMIN for the HCI management socket (HCI_CHANNEL_CONTROL).
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+
+# DynamicUser creates a "bt-rssi" user at runtime (stable UID, no /etc/passwd entry).
+# The D-Bus policy references this name via nss-systemd.
+DynamicUser=yes
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictSUIDSGID=true
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target
