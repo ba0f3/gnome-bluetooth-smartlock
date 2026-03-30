@@ -1,7 +1,9 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
-import Adw from 'gi://Adw'; // Import Adwaita for modern GNOME UI// ExtensionPreferences is the base class for GTK4 preference windows
+import Adw from 'gi://Adw';
+
+import { isRssiServiceAvailable } from './bluetooth/rssi-service.js';
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -124,8 +126,36 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         this._settings.bind(
             'duration-in-seconds',
             builder.get_object('duration'),
-            'value', // Gtk.SpinButton uses 'value'
+            'value',
             Gio.SettingsBindFlags.DEFAULT
         );
+        this._settings.bind(
+            'proximity-lock',
+            builder.get_object('proximity_lock_switch'),
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
+            'rssi-threshold',
+            builder.get_object('rssi_threshold'),
+            'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
+        // Disable RSSI controls if the bt-rssi service is not installed.
+        // Must run after settings.bind() which resets widget state.
+        if (!isRssiServiceAvailable()) {
+            const tooltip = this.gettext('bt-rssi service is not installed');
+            for (const id of ['proximity_lock', 'rssi_threshold']) {
+                const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : 'rssi_threshold');
+                const label = builder.get_object(`${id}_label`);
+                const icon = builder.get_object(`${id}_icon`);
+                widget.sensitive = false;
+                widget.tooltip_text = tooltip;
+                label.tooltip_text = tooltip;
+                icon.visible = true;
+                icon.tooltip_text = tooltip;
+            }
+        }
     }
 }

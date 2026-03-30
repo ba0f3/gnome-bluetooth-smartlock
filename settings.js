@@ -55,6 +55,24 @@ class Settings {
             this._settings.set_string(DEVICE_MAC_KEY, device);
     }
 
+    getProximityLock() {
+        return this._settings.get_boolean('proximity-lock');
+    }
+    setProximityLock(value) {
+        this._settings.set_boolean('proximity-lock', value);
+    }
+
+    getRssiThreshold() {
+        return this._settings.get_int('rssi-threshold');
+    }
+    setRssiThreshold(value) {
+        this._settings.set_int('rssi-threshold', value);
+    }
+
+    connectProximityLockSignal(cb) {
+        return this._settings.connect('changed::proximity-lock', () => cb(this.getProximityLock()));
+    }
+
     getAutoUnlock() {
         return this._settings.get_boolean(AUTO_UNLOCK_KEY);
     }
@@ -75,6 +93,10 @@ class Settings {
 
     connectLastSeenChangeSignal(cb) {
         return this._settings.connect(`changed::${LAST_SEEN}`, () => cb(this.getLastSeen()));
+    }
+
+    disconnectSignal(signalId) {
+        this._settings?.disconnect(signalId);
     }
 
     disconnect(signalId) {

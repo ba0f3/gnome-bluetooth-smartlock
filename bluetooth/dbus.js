@@ -2,13 +2,12 @@ import GLib from 'gi://GLib';
 const DBus = imports.gi.Gio.DBus;
 const Gio = imports.gi.Gio;
 
-const ADAPTER_PATH = '/org/bluez/hci0';
+import { RSSI_DBUS_NAME, RSSI_DBUS_PATH, isRssiServiceAvailable } from './rssi-service.js';
 
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
-let btPollTimeoutId = null;
-let pollLock = false;
-let discoveryActive = false;
+let signalSubscribeRssiUpdateId = null;
+let rssiServiceAvailable = false;
 let allDevices = {};
 /**
  * Get a list of Bluetooth devices managed by BlueZ.
@@ -82,8 +81,7 @@ function getDevices() {
  * @returns 
  */
 function subscribe(cb) {
-    disconnect()
-    startDiscovery();
+    disconnect();
     signalSubscribePropertiesChangedId = DBus.system.signal_subscribe(
         'org.bluez',                         // sender
         'org.freedesktop.DBus.Properties',  // interface
@@ -144,50 +142,21 @@ function subscribe(cb) {
     );
 }
 
-function startDiscovery() {
-    DBus.system.call(
-        'org.bluez',
-        ADAPTER_PATH,
-        'org.bluez.Adapter1',
-        'SetDiscoveryFilter',
-        new GLib.Variant('(a{sv})', [{ 'Transport': new GLib.Variant('s', 'auto') }]),
-        null,
-        Gio.DBusCallFlags.NONE,
-        -1,
-        null,
-        () => {
-            DBus.system.call(
-                'org.bluez',
-                ADAPTER_PATH,
-                'org.bluez.Adapter1',
-                'StartDiscovery',
-                null,
-                null,
-                Gio.DBusCallFlags.NONE,
-                -1,
-                null,
-                (conn, res) => {
-                    try {
-                        conn.call_finish(res);
-                        discoveryActive = true;
-                        log('[bluetooth-smartlock] Discovery started');
-                    } catch (e) {
-                        log(`[bluetooth-smartlock] Failed to start discovery: ${e.message}`);
-                    }
-                }
-            );
-        }
-    );
+function checkRssiService() {
+    rssiServiceAvailable = isRssiServiceAvailable();
+    if (!rssiServiceAvailable)
+        log(`[bluetooth-smartlock] ${RSSI_DBUS_NAME} service not found — RSSI monitoring disabled`);
+    return rssiServiceAvailable;
 }
 
-function stopDiscovery() {
-    if (!discoveryActive) return;
+function startRssiMonitoring(address, intervalSeconds = 5) {
+    if (!rssiServiceAvailable) return;
     DBus.system.call(
-        'org.bluez',
-        ADAPTER_PATH,
-        'org.bluez.Adapter1',
-        'StopDiscovery',
-        null,
+        RSSI_DBUS_NAME,
+        RSSI_DBUS_PATH,
+        'org.gnome.BluetoothRSSI',
+        'StartMonitoring',
+        new GLib.Variant('(su)', [address, intervalSeconds]),
         null,
         Gio.DBusCallFlags.NONE,
         -1,
@@ -195,11 +164,54 @@ function stopDiscovery() {
         (conn, res) => {
             try {
                 conn.call_finish(res);
-                discoveryActive = false;
-                log('[bluetooth-smartlock] Discovery stopped');
+                log(`[bluetooth-smartlock] RSSI monitoring started for ${address}`);
             } catch (e) {
-                log(`[bluetooth-smartlock] Failed to stop discovery: ${e.message}`);
+                log(`[bluetooth-smartlock] Failed to start RSSI monitoring: ${e.message}`);
             }
+        }
+    );
+}
+
+function stopRssiMonitoring(address) {
+    if (!rssiServiceAvailable) return;
+    DBus.system.call(
+        RSSI_DBUS_NAME,
+        RSSI_DBUS_PATH,
+        'org.gnome.BluetoothRSSI',
+        'StopMonitoring',
+        new GLib.Variant('(s)', [address]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (conn, res) => {
+            try {
+                conn.call_finish(res);
+                log(`[bluetooth-smartlock] RSSI monitoring stopped for ${address}`);
+            } catch (e) {
+                log(`[bluetooth-smartlock] Failed to stop RSSI monitoring: ${e.message}`);
+            }
+        }
+    );
+}
+
+function subscribeRssi(cb) {
+    signalSubscribeRssiUpdateId = DBus.system.signal_subscribe(
+        RSSI_DBUS_NAME,
+        'org.gnome.BluetoothRSSI',
+        'RSSIUpdate',
+        RSSI_DBUS_PATH,
+        null,
+        Gio.DBusSignalFlags.NONE,
+        (conn, sender, path, iface, signal, params) => {
+            let [address, rssi] = params.deep_unpack();
+            log(`[bluetooth-smartlock] RSSI update: ${address} rssi=${rssi}`);
+
+            if (allDevices[address]) {
+                allDevices[address].rssi = rssi;
+            }
+
+            cb({ address, rssi });
         }
     );
 }
@@ -208,7 +220,10 @@ function stopDiscovery() {
  * Disconnect from all D-Bus signals and clear any active polling.
  */
 function disconnect() {
-    stopDiscovery();
+    if (signalSubscribeRssiUpdateId) {
+        DBus.system.signal_unsubscribe(signalSubscribeRssiUpdateId);
+        signalSubscribeRssiUpdateId = null;
+    }
     if (signalSubscribePropertiesChangedId) {
         DBus.system.signal_unsubscribe(signalSubscribePropertiesChangedId);
         signalSubscribePropertiesChangedId = null;
@@ -223,7 +238,9 @@ function disconnect() {
 export default {
     getDevices,
     subscribe,
-    startDiscovery,
-    stopDiscovery,
+    checkRssiService,
+    subscribeRssi,
+    startRssiMonitoring,
+    stopRssiMonitoring,
     disconnect
 };
