@@ -3,6 +3,7 @@ const DBus = imports.gi.Gio.DBus;
 const Gio = imports.gi.Gio;
 
 import { RSSI_DBUS_NAME, RSSI_DBUS_PATH, isRssiServiceAvailable } from './rssi-service.js';
+import { logInfo } from '../log.js';
 
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
@@ -98,7 +99,7 @@ function subscribe(cb) {
             let isConnected = changedProps['Connected']?.deep_unpack?.();
             let rssi = changedProps['RSSI']?.deep_unpack?.();
 
-            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected} rssi=${rssi}`);
+            logInfo(`DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected} rssi=${rssi}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
@@ -125,7 +126,7 @@ function subscribe(cb) {
             let [removedPath, interfaces] = params.deep_unpack();
 
             let address = removedPath.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
-            log(`[bluetooth-smartlock] DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
+            logInfo(`DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
 
             if (interfaces.includes('org.bluez.Device1')) {
 
@@ -145,7 +146,7 @@ function subscribe(cb) {
 function checkRssiService() {
     rssiServiceAvailable = isRssiServiceAvailable();
     if (!rssiServiceAvailable)
-        log(`[bluetooth-smartlock] ${RSSI_DBUS_NAME} service not found — RSSI monitoring disabled`);
+        logInfo(`${RSSI_DBUS_NAME} service not found — RSSI monitoring disabled`);
     return rssiServiceAvailable;
 }
 
@@ -164,9 +165,9 @@ function startRssiMonitoring(address, intervalSeconds = 5) {
         (conn, res) => {
             try {
                 conn.call_finish(res);
-                log(`[bluetooth-smartlock] RSSI monitoring started for ${address}`);
+                logInfo(`RSSI monitoring started for ${address}`);
             } catch (e) {
-                log(`[bluetooth-smartlock] Failed to start RSSI monitoring: ${e.message}`);
+                logInfo(`Failed to start RSSI monitoring: ${e.message}`);
             }
         }
     );
@@ -187,9 +188,9 @@ function stopRssiMonitoring(address) {
         (conn, res) => {
             try {
                 conn.call_finish(res);
-                log(`[bluetooth-smartlock] RSSI monitoring stopped for ${address}`);
+                logInfo(`RSSI monitoring stopped for ${address}`);
             } catch (e) {
-                log(`[bluetooth-smartlock] Failed to stop RSSI monitoring: ${e.message}`);
+                logInfo(`Failed to stop RSSI monitoring: ${e.message}`);
             }
         }
     );
@@ -199,13 +200,13 @@ function subscribeRssi(cb) {
     signalSubscribeRssiUpdateId = DBus.system.signal_subscribe(
         RSSI_DBUS_NAME,
         'org.gnome.BluetoothRSSI',
-        'RSSIUpdate',
+        'RssiUpdate',
         RSSI_DBUS_PATH,
         null,
         Gio.DBusSignalFlags.NONE,
         (conn, sender, path, iface, signal, params) => {
             let [address, rssi] = params.deep_unpack();
-            log(`[bluetooth-smartlock] RSSI update: ${address} rssi=${rssi}`);
+            logInfo(`RSSI update: ${address} rssi=${rssi}`);
 
             if (allDevices[address]) {
                 allDevices[address].rssi = rssi;

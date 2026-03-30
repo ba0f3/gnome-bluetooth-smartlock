@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import bluetooth from "./bluetooth/dbus.js";
+import { logInfo, logError } from "./log.js";
+
 
 
 // eslint-disable-next-line no-unused-vars
@@ -16,7 +18,7 @@ const SmartLock = class SmartLock {
     }
 
     _log(message) {
-        log(`[bluetooth-smartlock] ${message}`);
+        logInfo(message);
     }
 
     lock_screen() {
@@ -217,7 +219,7 @@ const SmartLock = class SmartLock {
                     cb(device);
                 }
             } catch (error) {
-                console.error('Error polling Bluetooth devices:', error);               
+                logError(`Error polling Bluetooth devices: ${error}`);
             }
 
             this._pollLock = false; // Release the lock after processing
