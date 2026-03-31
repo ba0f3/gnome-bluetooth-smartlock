@@ -13,7 +13,7 @@ translate:
 build: ${PO_FILES}
 	glib-compile-schemas ./schemas
 
-EXTRA_SOURCES = icons bluetooth indicator.js settings.js settings.ui smartlock.js LICENSE README.md
+EXTRA_SOURCES = icons bluetooth indicator.js log.js settings.js settings.ui smartlock.js LICENSE README.md
 
 dist: build
 	gnome-extensions pack -f --podir=po --gettext-domain=${GETTEXT_DOMAIN} $(addprefix --extra-source=,$(EXTRA_SOURCES)) .
