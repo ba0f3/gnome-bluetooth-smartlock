@@ -10,7 +10,7 @@ const SmartLock = class SmartLock {
         this._proximitySignalId = null;
     }
 
-lock_screen() {
+    lock_screen() {
         if (!Main.screenShield.locked) {
             Main.overview.hide();
             Main.screenShield.lock(true);
@@ -34,9 +34,17 @@ lock_screen() {
 
         console.log('Subscribing to D-Bus signals');
 
-        let devices = await bluetooth.getDevices();
-        for (const device of devices) {
-            this._checkDevice(device);
+        try {
+            let devices = await bluetooth.getDevices();
+            if (this._disabled)
+                return;
+            for (const device of devices) {
+                this._checkDevice(device);
+            }
+        } catch (e) {
+            if (!this._disabled)
+                console.error('Initial Bluetooth enumeration failed', e);
+            return;
         }
 
         let targetDevice = this._settings.getDevice();
@@ -52,9 +60,16 @@ lock_screen() {
     }
 
     async checkNow() {
-        let devices = await bluetooth.getDevices();
-        for (const device of devices) {
-            this._checkDevice(device);
+        try {
+            let devices = await bluetooth.getDevices();
+            if (this._disabled)
+                return;
+            for (const device of devices) {
+                this._checkDevice(device);
+            }
+        } catch (e) {
+            if (!this._disabled)
+                console.error('Bluetooth refresh failed', e);
         }
     }
 
@@ -168,6 +183,7 @@ lock_screen() {
     }
 
     disable() {
+        this._disabled = true;
         this._clearLockTimeout()
 
         if (this._proximitySignalId) {
