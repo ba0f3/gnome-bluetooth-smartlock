@@ -26,14 +26,8 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         });
         this.add_child(icon);
 
-        // Initial menu item for "Smart Lock" active state
-        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
-        activeMenu.connect('activate', (item) => {
-            this._settings.setActive(item.state);
-        });
-        this.menu.addMenuItem(activeMenu);
-
-        this.menu.connect('open-state-changed', (menu, isOpen) => {
+        this._createMenu();
+        this.menu.connect('open-state-changed', (_menu, isOpen) => {
             if (isOpen) this._createMenu();
         });
 
