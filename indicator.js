@@ -37,9 +37,9 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
             if (isOpen) this._createMenu();
         });
 
-        this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
-        this._settings.connectActiveSignal(() => this._setIconColor(icon));
-        this._settings.connectDeviceChangeSignal(() => this._setIconColor(icon));
+        this._lastSeenSignal = this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
+        this._activeSignal = this._settings.connectActiveSignal(() => this._setIconColor(icon));
+        this._deviceChangeSignal = this._settings.connectDeviceChangeSignal(() => this._setIconColor(icon));
     }
 
     _setIconColor(icon) {
@@ -58,6 +58,16 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         } else {
             icon.style = `color: #FF0000;`; // Red if not seen recently
         }
+    }
+
+    destroy() {
+        if (this._lastSeenSignal)
+            this._settings.disconnect(this._lastSeenSignal);
+        if (this._activeSignal)
+            this._settings.disconnect(this._activeSignal);
+        if (this._deviceChangeSignal)
+            this._settings.disconnect(this._deviceChangeSignal);
+        super.destroy();
     }
 
     async _createMenu() {

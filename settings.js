@@ -72,7 +72,6 @@ class Settings {
     disconnect(signalId) {
         if (this._settings) {
             this._settings.disconnect(signalId);
-            this._settings = null;
         }
     }
 }
