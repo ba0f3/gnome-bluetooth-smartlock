@@ -2,7 +2,6 @@ import Gio from 'gi://Gio';
 const DBus = Gio.DBus;
 
 import { RSSI_DBUS_NAME, RSSI_DBUS_PATH, isRssiServiceAvailable } from './rssi-service.js';
-import { logInfo } from '../log.js';
 
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
@@ -102,7 +101,7 @@ function subscribe(cb) {
             let address = addressFromPath(path);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
 
-            logInfo(`DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected} rssi=${rssi}`);
+            console.log(`DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected} rssi=${rssi}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
@@ -128,7 +127,7 @@ function subscribe(cb) {
             let [removedPath, interfaces] = params.deep_unpack();
 
             let address = addressFromPath(removedPath);
-            logInfo(`DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
+            console.log(`DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
 
             if (interfaces.includes('org.bluez.Device1')) {
                 delete allDevices[address];
@@ -146,7 +145,7 @@ function subscribe(cb) {
 function checkRssiService() {
     rssiServiceAvailable = isRssiServiceAvailable();
     if (!rssiServiceAvailable)
-        logInfo(`${RSSI_DBUS_NAME} service not found — RSSI monitoring disabled`);
+        console.log(`${RSSI_DBUS_NAME} service not found — RSSI monitoring disabled`);
     return rssiServiceAvailable;
 }
 
@@ -165,9 +164,9 @@ function startRssiMonitoring(address, intervalSeconds = 5) {
         (conn, res) => {
             try {
                 conn.call_finish(res);
-                logInfo(`RSSI monitoring started for ${address}`);
+                console.log(`RSSI monitoring started for ${address}`);
             } catch (e) {
-                logInfo(`Failed to start RSSI monitoring: ${e.message}`);
+                console.log(`Failed to start RSSI monitoring: ${e.message}`);
             }
         }
     );
@@ -188,9 +187,9 @@ function stopRssiMonitoring(address) {
         (conn, res) => {
             try {
                 conn.call_finish(res);
-                logInfo(`RSSI monitoring stopped for ${address}`);
+                console.log(`RSSI monitoring stopped for ${address}`);
             } catch (e) {
-                logInfo(`Failed to stop RSSI monitoring: ${e.message}`);
+                console.log(`Failed to stop RSSI monitoring: ${e.message}`);
             }
         }
     );
@@ -206,7 +205,7 @@ function subscribeRssi(cb) {
         Gio.DBusSignalFlags.NONE,
         (conn, sender, path, iface, signal, params) => {
             let [address, rssi] = params.deep_unpack();
-            logInfo(`RSSI update: ${address} rssi=${rssi}`);
+            console.log(`RSSI update: ${address} rssi=${rssi}`);
 
             if (allDevices[address]) {
                 allDevices[address].rssi = rssi;

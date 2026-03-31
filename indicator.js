@@ -107,7 +107,7 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
             this.menu.addMenuItem(settingsMenu);
         } catch (e) {
             if (!this._destroyed)
-                logError(e, 'Failed to build Bluetooth Smartlock menu');
+                console.error('Failed to build Bluetooth Smartlock menu', e);
         } finally {
             this._creatingMenu = false;
         }

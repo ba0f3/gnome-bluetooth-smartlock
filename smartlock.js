@@ -2,10 +2,6 @@ import GLib from 'gi://GLib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import bluetooth from "./bluetooth/dbus.js";
-import { logInfo, logError } from "./log.js";
-
-
-
 // eslint-disable-next-line no-unused-vars
 const SmartLock = class SmartLock {
     constructor(settings) {
@@ -14,11 +10,7 @@ const SmartLock = class SmartLock {
         this._proximitySignalId = null;
     }
 
-    _log(message) {
-        logInfo(message);
-    }
-
-    lock_screen() {
+lock_screen() {
         if (!Main.screenShield.locked) {
             Main.overview.hide();
             Main.screenShield.lock(true);
@@ -26,12 +18,12 @@ const SmartLock = class SmartLock {
     }
 
     unlock_screen() {
-        this._log('Device reconnected, unlocking screen');
+        console.log('Device reconnected, unlocking screen');
         Main.screenShield.deactivate(false);
     }
 
     async enable() {
-        this._log('Enabling extension');
+        console.log('Enabling extension');
 
         bluetooth.subscribe((device) => this._checkDevice(device));
         bluetooth.checkRssiService();
@@ -40,7 +32,7 @@ const SmartLock = class SmartLock {
             (enabled) => this._onProximityLockChanged(enabled)
         );
 
-        this._log('Subscribing to D-Bus signals');
+        console.log('Subscribing to D-Bus signals');
 
         let devices = await bluetooth.getDevices();
         for (const device of devices) {
@@ -69,12 +61,12 @@ const SmartLock = class SmartLock {
     _checkDevice(device) {
 
         if (device.address !== this._settings.getDevice()) {
-            this._log(`BT -> Device ${device.name} [${device.address}] is not the target device ${this._settings.getDevice()}, ignoring.`);
+            console.log(`BT -> Device ${device.name} [${device.address}] is not the target device ${this._settings.getDevice()}, ignoring.`);
             return;
         }
 
         if (device.connected) {
-            this._log(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
+            console.log(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
             this._settings.setLastSeen(new Date().getTime());
             this._clearLockTimeout();
             if (this._settings.getAutoUnlock() && Main.screenShield.locked)
@@ -86,14 +78,14 @@ const SmartLock = class SmartLock {
 
         let lastSeen = this._settings.getLastSeen();
         if (lastSeen === 0) {
-            this._log(`BT -> Device ${device.name} [${device.address}] was not seen recently....`);
+            console.log(`BT -> Device ${device.name} [${device.address}] was not seen recently....`);
             return;
         }
 
         let duration = this._settings.getAwayDuration() || 5;
 
         this._settings.setLastSeen(0);
-        this._log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
+        console.log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
         this._lockTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             duration,   // delay in seconds before locking
@@ -102,9 +94,9 @@ const SmartLock = class SmartLock {
 
                 // check if the device is still not connected
                 if (this._settings.getLastSeen() > 0) {
-                    this._log(`Device ${device.address} is now connected, cancelling lock timeout.`);
+                    console.log(`Device ${device.address} is now connected, cancelling lock timeout.`);
                 } else {
-                    this._log(`User stepped away for ${duration} seconds, locking the screen`);
+                    console.log(`User stepped away for ${duration} seconds, locking the screen`);
                     this.lock_screen();
                 }
 
@@ -119,10 +111,10 @@ const SmartLock = class SmartLock {
         if (!targetDevice) return;
 
         if (enabled) {
-            this._log(`Proximity lock enabled, starting RSSI monitoring for ${targetDevice}`);
+            console.log(`Proximity lock enabled, starting RSSI monitoring for ${targetDevice}`);
             bluetooth.startRssiMonitoring(targetDevice, this._settings.getScanInterval());
         } else {
-            this._log(`Proximity lock disabled, stopping RSSI monitoring for ${targetDevice}`);
+            console.log(`Proximity lock disabled, stopping RSSI monitoring for ${targetDevice}`);
             bluetooth.stopRssiMonitoring(targetDevice);
         }
     }
@@ -132,10 +124,10 @@ const SmartLock = class SmartLock {
         if (!this._settings.getProximityLock()) return;
 
         let threshold = this._settings.getRssiThreshold();
-        this._log(`RSSI update: ${address} rssi=${rssi} threshold=${threshold}`);
+        console.log(`RSSI update: ${address} rssi=${rssi} threshold=${threshold}`);
 
         if (rssi < threshold) {
-            this._log(`RSSI ${rssi} below threshold ${threshold}, starting lock timer`);
+            console.log(`RSSI ${rssi} below threshold ${threshold}, starting lock timer`);
             this._startLockTimeout();
         } else {
             this._clearLockTimeout();
@@ -156,9 +148,9 @@ const SmartLock = class SmartLock {
             () => {
                 this._lockTimeoutId = null;
                 if (this._settings.getLastSeen() > 0) {
-                    this._log('Device reconnected, cancelling lock timeout.');
+                    console.log('Device reconnected, cancelling lock timeout.');
                 } else {
-                    this._log(`RSSI below threshold for ${duration} seconds, locking the screen`);
+                    console.log(`RSSI below threshold for ${duration} seconds, locking the screen`);
                     this.lock_screen();
                 }
                 return GLib.SOURCE_REMOVE;
@@ -183,7 +175,7 @@ const SmartLock = class SmartLock {
             this._proximitySignalId = null;
         }
 
-        this._log('Disabling extension');
+        console.log('Disabling extension');
 
         let targetDevice = this._settings.getDevice();
         if (targetDevice)
