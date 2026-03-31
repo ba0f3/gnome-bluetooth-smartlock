@@ -71,38 +71,44 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
     }
 
     async _createMenu() {
-        this.menu.removeAll();
+        if (this._creatingMenu) return;
+        this._creatingMenu = true;
 
-        const devices = await bluetooth.getDevices()
+        try {
+            this.menu.removeAll();
 
-        devices.sort((a, b) => a.name.localeCompare(b.name));
+            const devices = await bluetooth.getDevices()
 
-        for (const device of devices) {
-            if (device.paired && device.name !== '') {
-                let address = device.address;
-                let menuItem = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
-                menuItem.connect('activate', () => {
-                    this._settings.setDevice(address);
-                });
-                this.menu.addMenuItem(menuItem);
+            devices.sort((a, b) => a.name.localeCompare(b.name));
+
+            for (const device of devices) {
+                if (device.paired && device.name !== '') {
+                    let address = device.address;
+                    let menuItem = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
+                    menuItem.connect('activate', () => {
+                        this._settings.setDevice(address);
+                    });
+                    this.menu.addMenuItem(menuItem);
+                }
             }
+
+            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Enable Smart Lock'), this._settings.getActive());
+            activeMenu.connect('activate', (item) => {
+                this._settings.setActive(item.state);
+            });
+            this.menu.addMenuItem(activeMenu);
+
+            let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
+            let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
+            settingsMenu.connect('activate', () => {
+                this._extension.openPreferences();
+            });
+            this.menu.addMenuItem(settingsMenu);
+        } finally {
+            this._creatingMenu = false;
         }
-
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Enable Smart Lock'), this._settings.getActive());
-        activeMenu.connect('activate', (item) => {
-            this._settings.setActive(item.state);
-        });
-        this.menu.addMenuItem(activeMenu);
-
-        let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
-        let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
-        settingsMenu.connect('activate', () => {
-            this._extension.openPreferences();
-        });
-        this.menu.addMenuItem(settingsMenu);
-
     }
 }
 
