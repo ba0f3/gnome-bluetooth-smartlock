@@ -21,49 +21,53 @@ function getDevices() {
             -1,
             null,
             (conn, res) => {
-                let [objects] = Gio.DBus.system.call_finish(res).deep_unpack();
-                let devices = [];
-                for (let [path, interfaces] of Object.entries(objects)) {
-                    let dev = interfaces['org.bluez.Device1'];
-                    if (!dev) continue;
+                try {
+                    let [objects] = Gio.DBus.system.call_finish(res).deep_unpack();
+                    let devices = [];
+                    for (let [_, interfaces] of Object.entries(objects)) {
+                        let dev = interfaces['org.bluez.Device1'];
+                        if (!dev) continue;
 
-                    let name = dev.Name?.deep_unpack?.() || 'Unnamed';
-                    let address = dev.Address?.deep_unpack?.() || 'No address';
-                    let connected = dev.Connected?.deep_unpack?.() ?? false;
-                    let rssi = dev.RSSI?.deep_unpack?.();
-                    let paired = dev.Paired?.deep_unpack?.() ?? false;
+                        let name = dev.Name?.deep_unpack?.() || 'Unnamed';
+                        let address = dev.Address?.deep_unpack?.() || 'No address';
+                        let connected = dev.Connected?.deep_unpack?.() ?? false;
+                        let rssi = dev.RSSI?.deep_unpack?.();
+                        let paired = dev.Paired?.deep_unpack?.() ?? false;
 
-                    let device = {
-                        address,
-                        name,
-                        connected,
-                        rssi,
-                        visible: true,
-                        paired
-                    };
+                        let device = {
+                            address,
+                            name,
+                            connected,
+                            rssi,
+                            visible: true,
+                            paired
+                        };
 
-                    devices.push(device);
+                        devices.push(device);
 
-                    allDevices[address] = device
-                }
-
-                // update for missing devices
-                for (let address of Object.keys(allDevices)) {
-                    if (!devices.some(d => d.address === address)) {
-                        devices.push({
-                            address: address,
-                            name: allDevices[address].name,
-                            connected: false,
-                            rssi: 0,
-                            visible: false
-                        });
-
-                        // Remove from allDevices if not found
-                        delete allDevices[address];
+                        allDevices[address] = device
                     }
-                }
 
-                resolve(devices);
+                    // update for missing devices
+                    for (let address of Object.keys(allDevices)) {
+                        if (!devices.some(d => d.address === address)) {
+                            devices.push({
+                                address: address,
+                                name: allDevices[address].name,
+                                connected: false,
+                                rssi: 0,
+                                visible: false
+                            });
+
+                            // Remove from allDevices if not found
+                            delete allDevices[address];
+                        }
+                    }
+
+                    resolve(devices);
+                } catch (e) {
+                    reject(e);
+                }
             }
         );
     });
