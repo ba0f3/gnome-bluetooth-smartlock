@@ -20,7 +20,6 @@
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import Gio from 'gi://Gio';
 import Settings from './settings.js';
 import SmartLock from './smartlock.js';
 import Indicator from './indicator.js';
@@ -59,7 +58,7 @@ export default class BluetoothSmartLockExtension extends Extension {
         this._smartLock = new SmartLock(this._settings);
         await this._smartLock.enable();
         
-        this._settings.connectDeviceChangeSignal(async () => await this._smartLock.checkNow());
+        this._deviceChangeSignal = this._settings.connectDeviceChangeSignal(async () => await this._smartLock.onDeviceChanged());
 
     }
 
@@ -67,12 +66,14 @@ export default class BluetoothSmartLockExtension extends Extension {
         this._indicator.destroy();
         this._indicator = null;
 
+        if (this._deviceChangeSignal)
+            this._settings.disconnect(this._deviceChangeSignal);
+
         if (this._indicatorChangeSignal)
             this._settings.disconnect(this._indicatorChangeSignal);
 
         if (this._sessionModeSignal)
             Main.sessionMode.disconnect(this._sessionModeSignal);
-            
 
         this._settings = null;
 

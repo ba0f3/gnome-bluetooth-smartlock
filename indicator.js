@@ -26,20 +26,16 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         });
         this.add_child(icon);
 
-        // Initial menu item for "Smart Lock" active state
-        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Smart Lock'), this._settings.getActive());
-        activeMenu.connect('activate', (item) => {
-            this._settings.setActive(item.state);
-        });
-        this.menu.addMenuItem(activeMenu);
-
-        this.menu.connect('open-state-changed', (menu, isOpen) => {
+        this._createMenu();
+        this.menu.connect('open-state-changed', (_menu, isOpen) => {
             if (isOpen) this._createMenu();
         });
 
-        this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
-        this._settings.connectActiveSignal(() => this._setIconColor(icon));
-        this._settings.connectDeviceChangeSignal(() => this._setIconColor(icon));
+        this._lastSeenSignal = this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
+        this._activeSignal = this._settings.connectActiveSignal(() => this._setIconColor(icon));
+        this._deviceChangeSignal = this._settings.connectDeviceChangeSignal(() => this._setIconColor(icon));
+
+        this._setIconColor(icon);
     }
 
     _setIconColor(icon) {
@@ -60,39 +56,61 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         }
     }
 
+    destroy() {
+        this._destroyed = true;
+        if (this._lastSeenSignal)
+            this._settings.disconnect(this._lastSeenSignal);
+        if (this._activeSignal)
+            this._settings.disconnect(this._activeSignal);
+        if (this._deviceChangeSignal)
+            this._settings.disconnect(this._deviceChangeSignal);
+        super.destroy();
+    }
+
     async _createMenu() {
-        this.menu.removeAll();
+        if (this._creatingMenu || this._destroyed) return;
+        this._creatingMenu = true;
 
-        const devices = await bluetooth.getDevices()
+        try {
+            this.menu.removeAll();
 
-        devices.sort((a, b) => a.name.localeCompare(b.name));
+            const devices = await bluetooth.getDevices();
+            if (this._destroyed)
+                return;
 
-        for (const device of devices) {
-            if (device.paired && device.name !== '') {
-                let address = device.address;
-                let menuItem = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
-                menuItem.connect('activate', () => {
-                    this._settings.setDevice(address);
-                });
-                this.menu.addMenuItem(menuItem);
+            devices.sort((a, b) => a.name.localeCompare(b.name));
+
+            for (const device of devices) {
+                if (device.paired && device.name !== '') {
+                    let address = device.address;
+                    let menuItem = new PopupMenu.PopupSwitchMenuItem(`${device.name}`, this._settings.getDevice() === address);
+                    menuItem.connect('activate', () => {
+                        this._settings.setDevice(address);
+                    });
+                    this.menu.addMenuItem(menuItem);
+                }
             }
+
+            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+            let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Enable Smart Lock'), this._settings.getActive());
+            activeMenu.connect('activate', (item) => {
+                this._settings.setActive(item.state);
+            });
+            this.menu.addMenuItem(activeMenu);
+
+            let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
+            let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
+            settingsMenu.connect('activate', () => {
+                this._extension.openPreferences().catch(() => {});
+            });
+            this.menu.addMenuItem(settingsMenu);
+        } catch (e) {
+            if (!this._destroyed)
+                logError(e, 'Failed to build Bluetooth Smartlock menu');
+        } finally {
+            this._creatingMenu = false;
         }
-
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        let activeMenu = new PopupMenu.PopupSwitchMenuItem(_('Enable Smart Lock'), this._settings.getActive());
-        activeMenu.connect('activate', (item) => {
-            this._settings.setActive(item.state);
-        });
-        this.menu.addMenuItem(activeMenu);
-
-        let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
-        let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
-        settingsMenu.connect('activate', () => {
-            this._extension.openPreferences();
-        });
-        this.menu.addMenuItem(settingsMenu);
-
     }
 }
 

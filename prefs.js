@@ -171,12 +171,6 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
-            'interval',
-            builder.get_object('scan_interval'),
-            'value', // Gtk.SpinButton uses 'value'
-            Gio.SettingsBindFlags.DEFAULT
-        );
-        this._settings.bind(
             'duration-in-seconds',
             builder.get_object('duration'),
             'value',

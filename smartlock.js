@@ -12,9 +12,6 @@ const SmartLock = class SmartLock {
         this._settings = settings
         this._lockTimeoutId = null;
         this._proximitySignalId = null;
-
-        this._btPollTimeoutId = null;
-        this._pollLock = false;
     }
 
     _log(message) {
@@ -36,7 +33,6 @@ const SmartLock = class SmartLock {
     async enable() {
         this._log('Enabling extension');
 
-
         bluetooth.subscribe((device) => this._checkDevice(device));
         bluetooth.checkRssiService();
         bluetooth.subscribeRssi(({ address, rssi }) => this._onRssiUpdate(address, rssi));
@@ -44,7 +40,7 @@ const SmartLock = class SmartLock {
             (enabled) => this._onProximityLockChanged(enabled)
         );
 
-        this._log('Subscribing to signals');
+        this._log('Subscribing to D-Bus signals');
 
         let devices = await bluetooth.getDevices();
         for (const device of devices) {
@@ -55,6 +51,12 @@ const SmartLock = class SmartLock {
         if (targetDevice && this._settings.getProximityLock()) {
             bluetooth.startRssiMonitoring(targetDevice, this._settings.getScanInterval());
         }
+    }
+
+    async onDeviceChanged() {
+        this._clearLockTimeout();
+        this._settings.setLastSeen(0);
+        await this.checkNow();
     }
 
     async checkNow() {
@@ -88,7 +90,7 @@ const SmartLock = class SmartLock {
             return;
         }
 
-        let duration = this._settings.getAwayDuration() || 3; // Default to 60 seconds if not set
+        let duration = this._settings.getAwayDuration() || 5;
 
         this._settings.setLastSeen(0);
         this._log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
@@ -189,43 +191,9 @@ const SmartLock = class SmartLock {
 
         this._settings.setLastSeen(0);
 
-        if (this._btPollTimeoutId) {
-            GLib.source_remove(this._btPollTimeoutId);
-            this._btPollTimeoutId = null;
-        }
-
         bluetooth.disconnect();
     }
 
-    /**
-     * Poll for Bluetooth devices at regular intervals.
-     * @param {*} cb 
-     * @param {*} seconds 
-     */
-    _poll(cb, seconds = 60) {
-        bluetooth.disconnect()
-        this._log(`Polling LOCK devices every ${seconds} seconds...`);
-        this._btPollTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, seconds, async () => {
-            this._log(`Polling LOCK devices every ${seconds} seconds...`);
-            if (this._pollLock) {
-                 this._log(`Polling LOCK devices every ${this._pollLock} seconds...`);
-                return GLib.SOURCE_CONTINUE; // Prevent re-entrancy
-            }
-            pollLock = true;
-            this._log(`Polling Bluetooth devices every ${this._pollLock} seconds...`);
-            try {
-                const devices = await bluetooth.getDevices();
-                for (const device of devices) {
-                    cb(device);
-                }
-            } catch (error) {
-                logError(`Error polling Bluetooth devices: ${error}`);
-            }
-
-            this._pollLock = false; // Release the lock after processing
-            return GLib.SOURCE_CONTINUE;
-        });
-    }
 };
 
 

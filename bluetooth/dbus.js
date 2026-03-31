@@ -1,6 +1,5 @@
-import GLib from 'gi://GLib';
-const DBus = imports.gi.Gio.DBus;
-const Gio = imports.gi.Gio;
+import Gio from 'gi://Gio';
+const DBus = Gio.DBus;
 
 import { RSSI_DBUS_NAME, RSSI_DBUS_PATH, isRssiServiceAvailable } from './rssi-service.js';
 import { logInfo } from '../log.js';
@@ -9,7 +8,12 @@ let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
 let signalSubscribeRssiUpdateId = null;
 let rssiServiceAvailable = false;
+
 let allDevices = {};
+
+function addressFromPath(path) {
+    return path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+}
 /**
  * Get a list of Bluetooth devices managed by BlueZ.
  * @returns 
@@ -26,50 +30,51 @@ function getDevices() {
             Gio.DBusCallFlags.NONE,
             -1,
             null,
-            (conn, res) => {
-                let [objects] = Gio.DBus.system.call_finish(res).deep_unpack();
-                let devices = [];
-                for (let [path, interfaces] of Object.entries(objects)) {
-                    let dev = interfaces['org.bluez.Device1'];
-                    if (!dev) continue;
+            (_conn, res) => {
+                try {
+                    let [objects] = DBus.system.call_finish(res).deep_unpack();
+                    let devices = [];
+                    for (let [_, interfaces] of Object.entries(objects)) {
+                        let dev = interfaces['org.bluez.Device1'];
+                        if (!dev) continue;
 
-                    let name = dev.Name?.deep_unpack?.() || 'Unnamed';
-                    let address = dev.Address?.deep_unpack?.() || 'No address';
-                    let connected = dev.Connected?.deep_unpack?.() ?? false;
-                    let rssi = dev.RSSI?.deep_unpack?.();
-                    let paired = dev.Paired?.deep_unpack?.() ?? false;
+                        let name = dev.Name?.deep_unpack?.() || 'Unnamed';
+                        let address = dev.Address?.deep_unpack?.() || 'No address';
+                        let connected = dev.Connected?.deep_unpack?.() ?? false;
+                        let paired = dev.Paired?.deep_unpack?.() ?? false;
 
-                    let device = {
-                        address,
-                        name,
-                        connected,
-                        rssi,
-                        visible: true,
-                        paired
-                    };
+                        let device = {
+                            address,
+                            name,
+                            connected,
+                            visible: true,
+                            paired
+                        };
 
-                    devices.push(device);
+                        devices.push(device);
 
-                    allDevices[address] = device
-                }
-
-                // update for missing devices
-                for (let address of Object.keys(allDevices)) {
-                    if (!devices.some(d => d.address === address)) {
-                        devices.push({
-                            address: address,
-                            name: allDevices[address].name,
-                            connected: false,
-                            rssi: 0,
-                            visible: false
-                        });
-
-                        // Remove from allDevices if not found
-                        delete allDevices[address];
+                        allDevices[address] = device;
                     }
-                }
 
-                resolve(devices);
+                    // update for missing devices
+                    for (let address of Object.keys(allDevices)) {
+                        if (!devices.some(d => d.address === address)) {
+                            devices.push({
+                                address: address,
+                                name: allDevices[address].name,
+                                connected: false,
+                                visible: false
+                            });
+
+                            // Remove from allDevices if not found
+                            delete allDevices[address];
+                        }
+                    }
+
+                    resolve(devices);
+                } catch (e) {
+                    reject(e);
+                }
             }
         );
     });
@@ -90,26 +95,23 @@ function subscribe(cb) {
         null,                               // object path (null = all)
         null,                               // arg0
         Gio.DBusSignalFlags.NONE,
-        (conn, sender, path, iface, signal, params) => {
+        (_conn, _sender, path, _iface, _signal, params) => {
             let [ifaceName, changedProps] = params.deep_unpack();
             if (ifaceName !== 'org.bluez.Device1') return;
 
-            let address = path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
-            let changedKeys = Object.keys(changedProps);
+            let address = addressFromPath(path);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
-            let rssi = changedProps['RSSI']?.deep_unpack?.();
 
-            logInfo(`DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected} rssi=${rssi}`);
+            logInfo(`DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected} rssi=${rssi}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
                 address: address,
                 connected: isConnected ?? allDevices[address]?.connected ?? false,
-                rssi: rssi ?? allDevices[address]?.rssi,
                 visible: true
-            }
+            };
 
-            allDevices[address] = device
+            allDevices[address] = device;
 
             cb(device);
         }
@@ -122,20 +124,18 @@ function subscribe(cb) {
         null,
         null,
         Gio.DBusSignalFlags.NONE,
-        (conn, sender, objectPath, iface, signal, params) => {
+        (_conn, _sender, _objectPath, _iface, _signal, params) => {
             let [removedPath, interfaces] = params.deep_unpack();
 
-            let address = removedPath.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+            let address = addressFromPath(removedPath);
             logInfo(`DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
 
             if (interfaces.includes('org.bluez.Device1')) {
-
                 delete allDevices[address];
 
                 cb({
                     address: address,
                     connected: false,
-                    rssi: 0,
                     visible: false
                 });
             }
@@ -234,6 +234,8 @@ function disconnect() {
         DBus.system.signal_unsubscribe(signalSubscribeInterfacesRemovedId);
         signalSubscribeInterfacesRemovedId = null;
     }
+
+    allDevices = {};
 }
 
 export default {

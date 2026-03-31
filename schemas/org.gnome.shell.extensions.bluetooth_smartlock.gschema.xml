@@ -9,10 +9,6 @@
             <default>false</default>
             <summary>Hide or show indicator</summary>
         </key>
-        <key name="interval" type="i">
-            <default>30</default>
-            <summary>Scan interval (seconds)</summary>
-        </key>
         <key name="duration-in-seconds" type="i">
             <default>3</default>
             <summary>Away duration (seconds)</summary>
