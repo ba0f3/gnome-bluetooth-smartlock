@@ -34,6 +34,8 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
         this._lastSeenSignal = this._settings.connectLastSeenChangeSignal(() => this._setIconColor(icon));
         this._activeSignal = this._settings.connectActiveSignal(() => this._setIconColor(icon));
         this._deviceChangeSignal = this._settings.connectDeviceChangeSignal(() => this._setIconColor(icon));
+
+        this._setIconColor(icon);
     }
 
     _setIconColor(icon) {
@@ -55,6 +57,7 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
     }
 
     destroy() {
+        this._destroyed = true;
         if (this._lastSeenSignal)
             this._settings.disconnect(this._lastSeenSignal);
         if (this._activeSignal)
@@ -65,13 +68,15 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
     }
 
     async _createMenu() {
-        if (this._creatingMenu) return;
+        if (this._creatingMenu || this._destroyed) return;
         this._creatingMenu = true;
 
         try {
             this.menu.removeAll();
 
-            const devices = await bluetooth.getDevices()
+            const devices = await bluetooth.getDevices();
+            if (this._destroyed)
+                return;
 
             devices.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -100,6 +105,9 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
                 this._extension.openPreferences().catch(() => {});
             });
             this.menu.addMenuItem(settingsMenu);
+        } catch (e) {
+            if (!this._destroyed)
+                logError(e, 'Failed to build Bluetooth Smartlock menu');
         } finally {
             this._creatingMenu = false;
         }
