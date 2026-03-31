@@ -40,6 +40,12 @@ const SmartLock = class SmartLock {
         }
     }
 
+    async onDeviceChanged() {
+        this._clearLockTimeout();
+        this._settings.setLastSeen(0);
+        await this.checkNow();
+    }
+
     async checkNow() {
         let devices = await bluetooth.getDevices();
         for (const device of devices) {
