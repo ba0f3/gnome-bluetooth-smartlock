@@ -1,14 +1,8 @@
-import GLib from 'gi://GLib';
 const DBus = imports.gi.Gio.DBus;
 const Gio = imports.gi.Gio;
 
-const ADAPTER_PATH = '/org/bluez/hci0';
-
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
-let btPollTimeoutId = null;
-let pollLock = false;
-let discoveryActive = false;
 let allDevices = {};
 /**
  * Get a list of Bluetooth devices managed by BlueZ.
@@ -82,8 +76,7 @@ function getDevices() {
  * @returns 
  */
 function subscribe(cb) {
-    disconnect()
-    startDiscovery();
+    disconnect();
     signalSubscribePropertiesChangedId = DBus.system.signal_subscribe(
         'org.bluez',                         // sender
         'org.freedesktop.DBus.Properties',  // interface
@@ -144,71 +137,10 @@ function subscribe(cb) {
     );
 }
 
-function startDiscovery() {
-    DBus.system.call(
-        'org.bluez',
-        ADAPTER_PATH,
-        'org.bluez.Adapter1',
-        'SetDiscoveryFilter',
-        new GLib.Variant('(a{sv})', [{ 'Transport': new GLib.Variant('s', 'auto') }]),
-        null,
-        Gio.DBusCallFlags.NONE,
-        -1,
-        null,
-        () => {
-            DBus.system.call(
-                'org.bluez',
-                ADAPTER_PATH,
-                'org.bluez.Adapter1',
-                'StartDiscovery',
-                null,
-                null,
-                Gio.DBusCallFlags.NONE,
-                -1,
-                null,
-                (conn, res) => {
-                    try {
-                        conn.call_finish(res);
-                        discoveryActive = true;
-                        log('[bluetooth-smartlock] Discovery started');
-                    } catch (e) {
-                        log(`[bluetooth-smartlock] Failed to start discovery: ${e.message}`);
-                    }
-                }
-            );
-        }
-    );
-}
-
-function stopDiscovery() {
-    if (!discoveryActive) return;
-    DBus.system.call(
-        'org.bluez',
-        ADAPTER_PATH,
-        'org.bluez.Adapter1',
-        'StopDiscovery',
-        null,
-        null,
-        Gio.DBusCallFlags.NONE,
-        -1,
-        null,
-        (conn, res) => {
-            try {
-                conn.call_finish(res);
-                discoveryActive = false;
-                log('[bluetooth-smartlock] Discovery stopped');
-            } catch (e) {
-                log(`[bluetooth-smartlock] Failed to stop discovery: ${e.message}`);
-            }
-        }
-    );
-}
-
 /**
  * Disconnect from all D-Bus signals and clear any active polling.
  */
 function disconnect() {
-    stopDiscovery();
     if (signalSubscribePropertiesChangedId) {
         DBus.system.signal_unsubscribe(signalSubscribePropertiesChangedId);
         signalSubscribePropertiesChangedId = null;
@@ -223,7 +155,5 @@ function disconnect() {
 export default {
     getDevices,
     subscribe,
-    startDiscovery,
-    stopDiscovery,
     disconnect
 };
