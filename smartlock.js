@@ -9,9 +9,6 @@ const SmartLock = class SmartLock {
     constructor(settings) {
         this._settings = settings
         this._lockTimeoutId = null;
-
-        this._btPollTimeoutId = null;
-        this._pollLock = false;
     }
 
     _log(message) {
@@ -33,11 +30,9 @@ const SmartLock = class SmartLock {
     async enable() {
         this._log('Enabling extension');
 
-        //this._poll((device) => this._checkDevice(device), this._settings.getScanInterval());
-
         bluetooth.subscribe((device) => this._checkDevice(device));
 
-        this._log('Subscribing to  signals poll:' + this._settings.getScanInterval());
+        this._log('Subscribing to D-Bus signals');
 
         let devices = await bluetooth.getDevices();
         for (const device of devices) {
@@ -114,43 +109,9 @@ const SmartLock = class SmartLock {
 
         this._settings.setLastSeen(0);
 
-        if (this._btPollTimeoutId) {
-            GLib.source_remove(this._btPollTimeoutId);
-            this._btPollTimeoutId = null;
-        }
-
         bluetooth.disconnect();
     }
 
-    /**
-     * Poll for Bluetooth devices at regular intervals.
-     * @param {*} cb 
-     * @param {*} seconds 
-     */
-    _poll(cb, seconds = 60) {
-        bluetooth.disconnect()
-        this._log(`Polling LOCK devices every ${seconds} seconds...`);
-        this._btPollTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, seconds, async () => {
-            this._log(`Polling LOCK devices every ${seconds} seconds...`);
-            if (this._pollLock) {
-                 this._log(`Polling LOCK devices every ${this._pollLock} seconds...`);
-                return GLib.SOURCE_CONTINUE; // Prevent re-entrancy
-            }
-            pollLock = true;
-            this._log(`Polling Bluetooth devices every ${this._pollLock} seconds...`);
-            try {
-                const devices = await bluetooth.getDevices();
-                for (const device of devices) {
-                    cb(device);
-                }
-            } catch (error) {
-                console.error('Error polling Bluetooth devices:', error);               
-            }
-
-            this._pollLock = false; // Release the lock after processing
-            return GLib.SOURCE_CONTINUE;
-        });
-    }
 };
 
 

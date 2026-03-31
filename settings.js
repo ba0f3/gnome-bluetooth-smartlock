@@ -1,6 +1,5 @@
 import Gio from 'gi://Gio';
 
-const SCAN_INTERVAL_KEY = 'interval';
 const ACTIVE_KEY = 'active';
 const AWAY_DURATION = 'duration-in-seconds';
 const HIDE_INDICATOR_KEY = 'indicator';
@@ -11,13 +10,6 @@ const LAST_SEEN = 'last-seen';
 class Settings {
     init(settings) {
         this._settings = settings;
-    }
-
-    getScanInterval() {
-        return this._settings.get_int(SCAN_INTERVAL_KEY);
-    }
-    setScanInterval(interval) {
-        this._settings.set_int(SCAN_INTERVAL_KEY, interval);
     }
 
     getAwayDuration() {
