@@ -22,7 +22,7 @@ function getDevices() {
             null,
             (_conn, res) => {
                 try {
-                    let [objects] = Gio.DBus.system.call_finish(res).deep_unpack();
+                    let [objects] = DBus.system.call_finish(res).deep_unpack();
                     let devices = [];
                     for (let [_, interfaces] of Object.entries(objects)) {
                         let dev = interfaces['org.bluez.Device1'];
@@ -31,21 +31,19 @@ function getDevices() {
                         let name = dev.Name?.deep_unpack?.() || 'Unnamed';
                         let address = dev.Address?.deep_unpack?.() || 'No address';
                         let connected = dev.Connected?.deep_unpack?.() ?? false;
-                        let rssi = dev.RSSI?.deep_unpack?.();
                         let paired = dev.Paired?.deep_unpack?.() ?? false;
 
                         let device = {
                             address,
                             name,
                             connected,
-                            rssi,
                             visible: true,
                             paired
                         };
 
                         devices.push(device);
 
-                        allDevices[address] = device
+                        allDevices[address] = device;
                     }
 
                     // update for missing devices
@@ -55,7 +53,6 @@ function getDevices() {
                                 address: address,
                                 name: allDevices[address].name,
                                 connected: false,
-                                rssi: 0,
                                 visible: false
                             });
 
@@ -95,19 +92,17 @@ function subscribe(cb) {
             let address = path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
             let changedKeys = Object.keys(changedProps);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
-            let rssi = changedProps['RSSI']?.deep_unpack?.();
 
-            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected} rssi=${rssi}`);
+            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
                 address: address,
                 connected: isConnected ?? allDevices[address]?.connected ?? false,
-                rssi: rssi ?? allDevices[address]?.rssi,
                 visible: true
-            }
+            };
 
-            allDevices[address] = device
+            allDevices[address] = device;
 
             cb(device);
         }
@@ -133,7 +128,6 @@ function subscribe(cb) {
                 cb({
                     address: address,
                     connected: false,
-                    rssi: 0,
                     visible: false
                 });
             }
