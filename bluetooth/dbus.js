@@ -20,7 +20,7 @@ function getDevices() {
             Gio.DBusCallFlags.NONE,
             -1,
             null,
-            (conn, res) => {
+            (_conn, res) => {
                 try {
                     let [objects] = Gio.DBus.system.call_finish(res).deep_unpack();
                     let devices = [];
@@ -88,7 +88,7 @@ function subscribe(cb) {
         null,                               // object path (null = all)
         null,                               // arg0
         Gio.DBusSignalFlags.NONE,
-        (conn, sender, path, iface, signal, params) => {
+        (_conn, _sender, path, _iface, _signal, params) => {
             let [ifaceName, changedProps] = params.deep_unpack();
             if (ifaceName !== 'org.bluez.Device1') return;
 
@@ -120,7 +120,7 @@ function subscribe(cb) {
         null,
         null,
         Gio.DBusSignalFlags.NONE,
-        (conn, sender, objectPath, iface, signal, params) => {
+        (_conn, _sender, _objectPath, _iface, _signal, params) => {
             let [removedPath, interfaces] = params.deep_unpack();
 
             let address = removedPath.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
