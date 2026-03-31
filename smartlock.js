@@ -7,7 +7,8 @@ import { extLog, extErr, extDebug } from './log.js';
 const SmartLock = class SmartLock {
     constructor(settings) {
         this._settings = settings
-        this._lockTimeoutId = null;
+        this._disconnectTimeoutId = null;
+        this._proximityTimeoutId = null;
         this._proximitySignalId = null;
     }
 
@@ -55,7 +56,8 @@ const SmartLock = class SmartLock {
     }
 
     async onDeviceChanged() {
-        this._clearLockTimeout();
+        this._clearDisconnectTimeout();
+        this._clearProximityTimeout();
         this._settings.setLastSeen(0);
         await this.checkNow();
     }
@@ -84,7 +86,8 @@ const SmartLock = class SmartLock {
         if (device.connected) {
             extLog(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
             this._settings.setLastSeen(new Date().getTime());
-            this._clearLockTimeout();
+            this._clearDisconnectTimeout();
+            this._clearProximityTimeout();
             if (this._settings.getAutoUnlock() && Main.screenShield.locked)
                 this.unlock_screen();
             if (this._settings.getProximityLock())
@@ -102,13 +105,12 @@ const SmartLock = class SmartLock {
 
         this._settings.setLastSeen(0);
         extLog(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
-        this._lockTimeoutId = GLib.timeout_add_seconds(
+        this._disconnectTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
-            duration,   // delay in seconds before locking
+            duration,
             () => {
-                this._lockTimeoutId = null;
+                this._disconnectTimeoutId = null;
 
-                // check if the device is still not connected
                 if (this._settings.getLastSeen() > 0) {
                     extLog(`Device ${device.address} is now connected, cancelling lock timeout.`);
                 } else {
@@ -116,7 +118,6 @@ const SmartLock = class SmartLock {
                     this.lock_screen();
                 }
 
-                // Clear the timeout to prevent it from running again
                 return GLib.SOURCE_REMOVE;
             }
         );
@@ -132,6 +133,8 @@ const SmartLock = class SmartLock {
         } else {
             extLog(`Proximity lock disabled, stopping RSSI monitoring for ${targetDevice}`);
             bluetooth.stopRssiMonitoring(targetDevice);
+            this._clearProximityTimeout();
+            this._settings.setLastSeen(Date.now());
         }
     }
 
@@ -144,25 +147,25 @@ const SmartLock = class SmartLock {
 
         if (rssi < threshold) {
             extDebug(`RSSI ${rssi} below threshold ${threshold}, starting lock timer`);
-            this._startLockTimeout();
+            this._startProximityTimeout();
         } else {
-            this._clearLockTimeout();
+            this._clearProximityTimeout();
             this._settings.setLastSeen(new Date().getTime());
             if (this._settings.getAutoUnlock() && Main.screenShield.locked)
                 this.unlock_screen();
         }
     }
 
-    _startLockTimeout() {
-        if (this._lockTimeoutId) return;
+    _startProximityTimeout() {
+        if (this._proximityTimeoutId) return;
 
         let duration = this._settings.getAwayDuration() || 5;
         this._settings.setLastSeen(0);
-        this._lockTimeoutId = GLib.timeout_add_seconds(
+        this._proximityTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             duration,
             () => {
-                this._lockTimeoutId = null;
+                this._proximityTimeoutId = null;
                 if (this._settings.getLastSeen() > 0) {
                     extLog('Device reconnected, cancelling lock timeout.');
                 } else {
@@ -174,18 +177,24 @@ const SmartLock = class SmartLock {
         );
     }
 
-    _clearLockTimeout() {
-        if (this._lockTimeoutId) {
-            GLib.source_remove(this._lockTimeoutId);
-            this._lockTimeoutId = null;
+    _clearDisconnectTimeout() {
+        if (this._disconnectTimeoutId) {
+            GLib.source_remove(this._disconnectTimeoutId);
+            this._disconnectTimeoutId = null;
         }
+    }
 
-
+    _clearProximityTimeout() {
+        if (this._proximityTimeoutId) {
+            GLib.source_remove(this._proximityTimeoutId);
+            this._proximityTimeoutId = null;
+        }
     }
 
     disable() {
         this._disabled = true;
-        this._clearLockTimeout()
+        this._clearDisconnectTimeout();
+        this._clearProximityTimeout();
 
         if (this._proximitySignalId) {
             this._settings.disconnectSignal(this._proximitySignalId);
