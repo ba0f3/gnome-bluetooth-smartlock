@@ -26,7 +26,7 @@
             <summary>Lock screen when RSSI drops below threshold</summary>
         </key>
         <key name="rssi-threshold" type="i">
-            <default>-5</default>
+            <default>-10</default>
             <summary>RSSI threshold (dBm) below which the screen locks</summary>
         </key>
         <key name="last-seen" type="x">
