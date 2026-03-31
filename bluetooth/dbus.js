@@ -1,5 +1,5 @@
-const DBus = imports.gi.Gio.DBus;
-const Gio = imports.gi.Gio;
+import Gio from 'gi://Gio';
+const DBus = Gio.DBus;
 
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
