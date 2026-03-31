@@ -25,6 +25,10 @@
             <default>false</default>
             <summary>Lock screen when RSSI drops below threshold</summary>
         </key>
+        <key name="rssi-interval" type="i">
+            <default>5</default>
+            <summary>RSSI polling interval (seconds)</summary>
+        </key>
         <key name="rssi-threshold" type="i">
             <default>-10</default>
             <summary>RSSI threshold (dBm) below which the screen locks</summary>

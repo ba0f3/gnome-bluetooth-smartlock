@@ -187,13 +187,19 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             'value',
             Gio.SettingsBindFlags.DEFAULT
         );
+        this._settings.bind(
+            'rssi-interval',
+            builder.get_object('rssi_interval'),
+            'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
 
         // Disable RSSI controls if the bt-rssi service is not installed.
         // Must run after settings.bind() which resets widget state.
         if (!rssiAvailable) {
             const tooltip = this.gettext('bt-rssi service is not installed');
-            for (const id of ['proximity_lock', 'rssi_threshold']) {
-                const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : 'rssi_threshold');
+            for (const id of ['proximity_lock', 'rssi_threshold', 'rssi_interval']) {
+                const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : id);
                 const label = builder.get_object(`${id}_label`);
                 const icon = builder.get_object(`${id}_icon`);
                 widget.sensitive = false;

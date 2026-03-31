@@ -1,5 +1,3 @@
-import Gio from 'gi://Gio';
-
 const ACTIVE_KEY = 'active';
 const AWAY_DURATION = 'duration-in-seconds';
 const HIDE_INDICATOR_KEY = 'indicator';
@@ -52,6 +50,13 @@ class Settings {
     }
     setProximityLock(value) {
         this._settings.set_boolean('proximity-lock', value);
+    }
+
+    getRssiInterval() {
+        return this._settings.get_int('rssi-interval');
+    }
+    setRssiInterval(value) {
+        this._settings.set_int('rssi-interval', value);
     }
 
     getRssiThreshold() {

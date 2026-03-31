@@ -41,7 +41,7 @@ lock_screen() {
 
         let targetDevice = this._settings.getDevice();
         if (targetDevice && this._settings.getProximityLock()) {
-            bluetooth.startRssiMonitoring(targetDevice, this._settings.getScanInterval());
+            bluetooth.startRssiMonitoring(targetDevice, this._settings.getRssiInterval());
         }
     }
 
@@ -72,7 +72,7 @@ lock_screen() {
             if (this._settings.getAutoUnlock() && Main.screenShield.locked)
                 this.unlock_screen();
             if (this._settings.getProximityLock())
-                bluetooth.startRssiMonitoring(device.address, this._settings.getScanInterval());
+                bluetooth.startRssiMonitoring(device.address, this._settings.getRssiInterval());
             return;
         }
 
@@ -112,7 +112,7 @@ lock_screen() {
 
         if (enabled) {
             console.log(`Proximity lock enabled, starting RSSI monitoring for ${targetDevice}`);
-            bluetooth.startRssiMonitoring(targetDevice, this._settings.getScanInterval());
+            bluetooth.startRssiMonitoring(targetDevice, this._settings.getRssiInterval());
         } else {
             console.log(`Proximity lock disabled, stopping RSSI monitoring for ${targetDevice}`);
             bluetooth.stopRssiMonitoring(targetDevice);
