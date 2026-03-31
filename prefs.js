@@ -83,12 +83,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 
             // Connect to the 'response' signal to clean up when the dialog is closed.
             dialog.connect('response', () => {
-                // Remove the box from the dialog's content area.
                 dialog.get_content_area().remove(advancedSettingsBox);
-                // Destroy the advanced settings box and its children.
-                advancedSettingsBox.destroy();
-                // Destroy the dialog itself.
-                dialog.destroy();
+                dialog.close();
             });
 
             // Show the dialog.
