@@ -4,6 +4,10 @@ const DBus = Gio.DBus;
 let signalSubscribePropertiesChangedId = null;
 let signalSubscribeInterfacesRemovedId = null;
 let allDevices = {};
+
+function addressFromPath(path) {
+    return path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+}
 /**
  * Get a list of Bluetooth devices managed by BlueZ.
  * @returns 
@@ -89,11 +93,10 @@ function subscribe(cb) {
             let [ifaceName, changedProps] = params.deep_unpack();
             if (ifaceName !== 'org.bluez.Device1') return;
 
-            let address = path.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
-            let changedKeys = Object.keys(changedProps);
+            let address = addressFromPath(path);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
 
-            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${changedKeys}] connected=${isConnected}`);
+            log(`[bluetooth-smartlock] DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
@@ -118,11 +121,10 @@ function subscribe(cb) {
         (_conn, _sender, _objectPath, _iface, _signal, params) => {
             let [removedPath, interfaces] = params.deep_unpack();
 
-            let address = removedPath.split('/').pop().replace(/^dev_/, '').replace(/_/g, ':');
+            let address = addressFromPath(removedPath);
             log(`[bluetooth-smartlock] DBus InterfacesRemoved: ${address} interfaces=[${interfaces}]`);
 
             if (interfaces.includes('org.bluez.Device1')) {
-
                 delete allDevices[address];
 
                 cb({
