@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw';
 
 import { isRssiServiceAvailable, RSSI_DBUS_NAME, RSSI_DBUS_PATH } from './bluetooth/rssi-service.js';
+import { extLog, extWarn } from './log.js';
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -66,7 +67,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             if (parentWindow instanceof Gtk.Window) {
                 dialog.set_transient_for(parentWindow);
             } else {
-                console.warn("Could not find a Gtk.Window parent for the preferences dialog.");
+                extWarn("Could not find a Gtk.Window parent for the preferences dialog.");
             }
 
             // Get the 'advanced_settings' box from the builder.
@@ -106,7 +107,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                     Gio.DBusSignalFlags.NONE,
                     (_conn, _sender, _path, _iface, _signal, params) => {
                         const [address, rssi] = params.deep_unpack();
-                        console.log(`prefs RSSI: ${address} rssi=${rssi}`);
+                        extLog(`prefs RSSI: ${address} rssi=${rssi}`);
                         if (address === targetDevice)
                             rssiValue.label = `${rssi} dBm`;
                     }
@@ -125,9 +126,9 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                     (conn, res) => {
                         try {
                             conn.call_finish(res);
-                            console.log(`prefs StartMonitoring OK for ${targetDevice}`);
+                            extLog(`prefs StartMonitoring OK for ${targetDevice}`);
                         } catch (e) {
-                            console.log(`prefs StartMonitoring failed: ${e.message}`);
+                            extLog(`prefs StartMonitoring failed: ${e.message}`);
                             rssiValue.label = this.gettext('unavailable');
                         }
                     }

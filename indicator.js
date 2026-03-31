@@ -6,6 +6,7 @@ import St from 'gi://St';
 import Gio from 'gi://Gio';
 
 import bluetooth from "./bluetooth/dbus.js";
+import { extErr } from './log.js';
 
 class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name for the raw class
     constructor() {
@@ -107,7 +108,7 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
             this.menu.addMenuItem(settingsMenu);
         } catch (e) {
             if (!this._destroyed)
-                console.error('Failed to build Bluetooth Smartlock menu', e);
+                extErr('Failed to build Bluetooth Smartlock menu', e);
         } finally {
             this._creatingMenu = false;
         }
