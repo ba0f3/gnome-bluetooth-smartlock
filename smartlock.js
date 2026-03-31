@@ -69,7 +69,7 @@ const SmartLock = class SmartLock {
             return;
         }
 
-        let duration = this._settings.getAwayDuration() || 3; // Default to 60 seconds if not set
+        let duration = this._settings.getAwayDuration() || 5;
 
         this._settings.setLastSeen(0);
         this._log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
