@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 const DBus = Gio.DBus;
 
@@ -101,7 +102,7 @@ function subscribe(cb) {
             let address = addressFromPath(path);
             let isConnected = changedProps['Connected']?.deep_unpack?.();
 
-            console.log(`DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected} rssi=${rssi}`);
+            console.log(`DBus PropertiesChanged: ${address} changed=[${Object.keys(changedProps)}] connected=${isConnected}`);
 
             let device = {
                 name: allDevices[address]?.name || 'Unnamed',
