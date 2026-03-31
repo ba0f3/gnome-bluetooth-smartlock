@@ -97,7 +97,7 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
             let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
             let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
             settingsMenu.connect('activate', () => {
-                this._extension.openPreferences();
+                this._extension.openPreferences().catch(() => {});
             });
             this.menu.addMenuItem(settingsMenu);
         } finally {
