@@ -196,6 +196,9 @@ function stopRssiMonitoring(address) {
 }
 
 function subscribeRssi(cb) {
+    if (signalSubscribeRssiUpdateId) {
+        DBus.system.signal_unsubscribe(signalSubscribeRssiUpdateId);
+    }
     signalSubscribeRssiUpdateId = DBus.system.signal_subscribe(
         RSSI_DBUS_NAME,
         'org.gnome.BluetoothRSSI',
