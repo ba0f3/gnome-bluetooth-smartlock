@@ -10,7 +10,7 @@
             <summary>Hide or show indicator</summary>
         </key>
         <key name="duration-in-seconds" type="i">
-            <default>3</default>
+            <default>5</default>
             <summary>Away duration (seconds)</summary>
         </key>
         <key name="mac" type="s">

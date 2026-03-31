@@ -156,7 +156,7 @@ const SmartLock = class SmartLock {
     _startLockTimeout() {
         if (this._lockTimeoutId) return;
 
-        let duration = this._settings.getAwayDuration() || 3;
+        let duration = this._settings.getAwayDuration() || 5;
         this._settings.setLastSeen(0);
         this._lockTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
