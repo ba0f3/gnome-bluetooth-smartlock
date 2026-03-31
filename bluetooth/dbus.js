@@ -154,6 +154,8 @@ function disconnect() {
         DBus.system.signal_unsubscribe(signalSubscribeInterfacesRemovedId);
         signalSubscribeInterfacesRemovedId = null;
     }
+
+    allDevices = {};
 }
 
 export default {
