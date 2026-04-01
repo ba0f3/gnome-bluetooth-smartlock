@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            gettext gnome-shell
+
+      - name: Build extension package
+        run: make dist
+
+      # Use gh instead of a third-party action so local `act` does not need to git-clone actions (avoids host GitHub auth issues).
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh --version >/dev/null 2>&1 || {
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gh
+          }
+          gh release create "${{ github.ref_name }}" \
+            bluetooth-smartlock@ba0f3.github.com.shell-extension.zip \
+            --generate-notes
