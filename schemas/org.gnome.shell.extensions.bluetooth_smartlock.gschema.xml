@@ -26,15 +26,19 @@
             <default>false</default>
             <summary>Lock screen when RSSI drops below threshold</summary>
         </key>
-        <key name="rssi-interval" type="i">
+        <key name="polling-interval" type="i">
             <default>5</default>
             <range min="1" max="60"/>
-            <summary>RSSI polling interval (seconds)</summary>
+            <summary>Polling interval in seconds for RSSI reads and reconnect attempts</summary>
         </key>
         <key name="rssi-threshold" type="i">
             <default>-10</default>
             <range min="-100" max="0"/>
             <summary>RSSI threshold (dBm) below which the screen locks</summary>
+        </key>
+        <key name="reconnect-polling" type="b">
+            <default>false</default>
+            <summary>Actively page the device to detect its return</summary>
         </key>
         <key name="last-seen" type="x">
             <default>0</default>

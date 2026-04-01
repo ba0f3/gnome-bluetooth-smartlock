@@ -52,11 +52,15 @@ class Settings {
         this._settings.set_boolean('proximity-lock', value);
     }
 
-    getRssiInterval() {
-        return this._settings.get_int('rssi-interval');
+    getPollingInterval() {
+        return this._settings.get_int('polling-interval');
     }
-    setRssiInterval(value) {
-        this._settings.set_int('rssi-interval', value);
+    setPollingInterval(value) {
+        this._settings.set_int('polling-interval', value);
+    }
+
+    getReconnectPolling() {
+        return this._settings.get_boolean('reconnect-polling');
     }
 
     getRssiThreshold() {

@@ -24,7 +24,6 @@ const DBUS_PATH: &str = "/org/gnome/BluetoothRSSI";
 // ── D-Bus interface ──────────────────────────────────────────────────────────
 
 struct BtRssiService {
-    hci_index: u16,
     tasks:     Arc<Mutex<HashMap<String, JoinHandle<()>>>>,
     tx:        mpsc::Sender<(String, i16)>,
 }
@@ -32,20 +31,23 @@ struct BtRssiService {
 #[interface(name = "org.gnome.BluetoothRSSI")]
 impl BtRssiService {
     /// Start emitting RSSIUpdate signals for `address` every `interval_seconds`.
+    /// `hci_index` selects the Bluetooth adapter (0 = hci0, 1 = hci1, …).
+    /// If already monitoring this address, restarts with the new interval.
     async fn start_monitoring(
         &self,
         address: String,
         interval_seconds: u32,
+        hci_index: u16,
     ) -> zbus::fdo::Result<()> {
-        use std::collections::hash_map::Entry;
-
         let mut tasks = self.tasks.lock().await;
-        let Entry::Vacant(entry) = tasks.entry(address.clone()) else {
-            return Ok(());
-        };
+
+        // Stop existing monitor for this address so we can restart
+        // with a (possibly different) interval.
+        if let Some(handle) = tasks.remove(&address) {
+            handle.abort();
+        }
 
         let addr      = address;
-        let hci_index = self.hci_index;
         let tx        = self.tx.clone();
         let interval  = Duration::from_secs(interval_seconds.max(1) as u64);
         let tasks_ref = self.tasks.clone();
@@ -87,7 +89,7 @@ impl BtRssiService {
             tasks_ref.lock().await.remove(&addr);
         });
 
-        entry.insert(handle);
+        tasks.insert(address, handle);
         Ok(())
     }
 
@@ -116,7 +118,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tasks = Arc::new(Mutex::new(HashMap::new()));
 
     let service = BtRssiService {
-        hci_index: 0,
         tasks:     tasks.clone(),
         tx,
     };

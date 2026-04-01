@@ -8,6 +8,7 @@ const SmartLock = class SmartLock {
     constructor(settings) {
         this._settings = settings
         this._disconnectTimeoutId = null;
+        this._reconnectIntervalId = null;
         this._proximityTimeoutId = null;
         this._proximitySignalId = null;
     }
@@ -49,10 +50,6 @@ const SmartLock = class SmartLock {
             return;
         }
 
-        let targetDevice = this._settings.getDevice();
-        if (targetDevice && this._settings.getProximityLock()) {
-            bluetooth.startRssiMonitoring(targetDevice, this._settings.getRssiInterval());
-        }
     }
 
     async onDeviceChanged() {
@@ -87,24 +84,44 @@ const SmartLock = class SmartLock {
             extLog(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
             this._settings.setLastSeen(new Date().getTime());
             this._clearDisconnectTimeout();
+            this._clearReconnectInterval();
+            bluetooth.cancelPage();
             this._clearProximityTimeout();
             if (this._settings.getAutoUnlock() && Main.screenShield.locked)
                 this.unlock_screen();
             if (this._settings.getProximityLock())
-                bluetooth.startRssiMonitoring(device.address, this._settings.getRssiInterval());
+                bluetooth.startRssiMonitoring(device.address, this._settings.getPollingInterval());
             return;
         }
 
         let lastSeen = this._settings.getLastSeen();
+
+        // Actively page the device to detect its return (optional).
+        if (this._settings.getReconnectPolling() && !this._reconnectIntervalId) {
+            const reconnectInterval = this._settings.getPollingInterval();
+            extLog(`BT -> Device ${device.address} is not connected, starting reconnect every ${reconnectInterval}s.`);
+            bluetooth.reconnect(device.address);
+            this._reconnectIntervalId = GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
+                reconnectInterval,
+                () => {
+                    bluetooth.reconnect(device.address);
+                    return GLib.SOURCE_CONTINUE;
+                }
+            );
+        }
+
+        // Only start the lock timer if the device was previously seen
+        // (prevents locking on extension startup when phone is already away).
         if (lastSeen === 0) {
-            extLog(`BT -> Device ${device.name} [${device.address}] was not seen recently....`);
+            extLog(`BT -> Device ${device.name} [${device.address}] was not seen recently, skipping lock timer.`);
             return;
         }
 
         let duration = this._settings.getAwayDuration() || 5;
-
         this._settings.setLastSeen(0);
-        extLog(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
+        extLog(`BT -> Device ${device.address} not connected, locking in ${duration}s.`);
+
         this._disconnectTimeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             duration,
@@ -113,9 +130,11 @@ const SmartLock = class SmartLock {
 
                 if (this._settings.getLastSeen() > 0) {
                     extLog(`Device ${device.address} is now connected, cancelling lock timeout.`);
+                    this._clearReconnectInterval();
                 } else {
                     extLog(`User stepped away for ${duration} seconds, locking the screen`);
                     this.lock_screen();
+                    // Keep reconnecting so we detect the phone returning.
                 }
 
                 return GLib.SOURCE_REMOVE;
@@ -129,7 +148,7 @@ const SmartLock = class SmartLock {
 
         if (enabled) {
             extLog(`Proximity lock enabled, starting RSSI monitoring for ${targetDevice}`);
-            bluetooth.startRssiMonitoring(targetDevice, this._settings.getRssiInterval());
+            bluetooth.startRssiMonitoring(targetDevice, this._settings.getPollingInterval());
         } else {
             extLog(`Proximity lock disabled, stopping RSSI monitoring for ${targetDevice}`);
             bluetooth.stopRssiMonitoring(targetDevice);
@@ -177,6 +196,13 @@ const SmartLock = class SmartLock {
         );
     }
 
+    _clearReconnectInterval() {
+        if (this._reconnectIntervalId) {
+            GLib.source_remove(this._reconnectIntervalId);
+            this._reconnectIntervalId = null;
+        }
+    }
+
     _clearDisconnectTimeout() {
         if (this._disconnectTimeoutId) {
             GLib.source_remove(this._disconnectTimeoutId);
@@ -194,6 +220,7 @@ const SmartLock = class SmartLock {
     disable() {
         this._disabled = true;
         this._clearDisconnectTimeout();
+        this._clearReconnectInterval();
         this._clearProximityTimeout();
 
         if (this._proximitySignalId) {

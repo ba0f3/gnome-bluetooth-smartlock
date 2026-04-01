@@ -4,7 +4,10 @@ import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw';
 
 import { isRssiServiceAvailable, RSSI_DBUS_NAME, RSSI_DBUS_PATH } from './bluetooth/rssi-service.js';
+import bluetooth from './bluetooth/dbus.js';
 import { extLog, extWarn } from './log.js';
+
+const LIVE_RSSI_INTERVAL_SECS = 1;
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -94,6 +97,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             const rssiValue = builder.get_object('rssi_reading_value');
             const targetDevice = this._settings.get_string('mac');
 
+            const hciIndex = targetDevice ? bluetooth.lookupHciIndex(targetDevice) : 0;
+
             if (rssiAvailable && targetDevice) {
                 rssiRow.visible = true;
                 const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
@@ -118,7 +123,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                     RSSI_DBUS_PATH,
                     RSSI_DBUS_NAME,
                     'StartMonitoring',
-                    new GLib.Variant('(su)', [targetDevice, 2]),
+                    new GLib.Variant('(suq)', [targetDevice, LIVE_RSSI_INTERVAL_SECS, hciIndex]),
                     null,
                     Gio.DBusCallFlags.NONE,
                     -1,
@@ -140,6 +145,24 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                 if (rssiSignalId !== null) {
                     const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
                     bus.signal_unsubscribe(rssiSignalId);
+
+                    // Restart monitoring at the normal polling interval
+                    // (the dialog used a faster rate for live display).
+                    if (targetDevice) {
+                        const normalInterval = this._settings.get_int('polling-interval');
+                        bus.call(
+                            RSSI_DBUS_NAME,
+                            RSSI_DBUS_PATH,
+                            RSSI_DBUS_NAME,
+                            'StartMonitoring',
+                            new GLib.Variant('(suq)', [targetDevice, normalInterval, hciIndex]),
+                            null,
+                            Gio.DBusCallFlags.NONE,
+                            -1,
+                            null,
+                            null
+                        );
+                    }
                 }
 
                 dialog.get_content_area().remove(advancedSettingsBox);
@@ -177,6 +200,12 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
+            'reconnect-polling',
+            builder.get_object('reconnect_polling_switch'),
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
             'proximity-lock',
             builder.get_object('proximity_lock_switch'),
             'active',
@@ -189,8 +218,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
-            'rssi-interval',
-            builder.get_object('rssi_interval'),
+            'polling-interval',
+            builder.get_object('polling_interval'),
             'value',
             Gio.SettingsBindFlags.DEFAULT
         );
@@ -199,7 +228,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         // Must run after settings.bind() which resets widget state.
         if (!rssiAvailable) {
             const tooltip = this.gettext('bt-rssi service is not installed');
-            for (const id of ['proximity_lock', 'rssi_threshold', 'rssi_interval']) {
+            for (const id of ['proximity_lock', 'rssi_threshold', 'polling_interval']) {
                 const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : id);
                 const label = builder.get_object(`${id}_label`);
                 const icon = builder.get_object(`${id}_icon`);
