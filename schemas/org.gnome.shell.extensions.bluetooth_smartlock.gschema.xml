@@ -9,17 +9,21 @@
             <default>false</default>
             <summary>Hide or show indicator</summary>
         </key>
-        <key name="interval" type="i">
-            <default>30</default>
-            <summary>Scan interval (seconds)</summary>
-        </key>
         <key name="duration-in-seconds" type="i">
-            <default>60</default>
+            <default>3</default>
             <summary>Away duration (seconds)</summary>
         </key>
         <key name="mac" type="s">
             <default>''</default>
             <summary>Device mac address for tracking</summary>
+        </key>
+        <key name="auto-unlock" type="b">
+            <default>false</default>
+            <summary>Auto-unlock screen when device reconnects</summary>
+        </key>
+        <key name="last-seen" type="x">
+            <default>0</default>
+            <summary>Timestamp mac address was last seen</summary>
         </key>
     </schema>
 </schemalist>

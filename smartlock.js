@@ -1,114 +1,123 @@
-import GnomeBluetooth from "gi://GnomeBluetooth";
 import GLib from 'gi://GLib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import bluetooth from "./bluetooth/dbus.js";
 
-import Settings from './settings.js';
 
 // eslint-disable-next-line no-unused-vars
-var SmartLock = class SmartLock {
+const SmartLock = class SmartLock {
     constructor(settings) {
-        this._client = new GnomeBluetooth.Client();
-        this._settings = settings;
-        this._deviceAddress = null;
-        this._deviceChangeHandlerId = 0;
-        this._lastSeen = 0;
+        this._settings = settings
+        this._lockTimeoutId = null;
     }
 
     _log(message) {
         log(`[bluetooth-smartlock] ${message}`);
     }
 
-    _runLoop() {
-        const interval = this._settings.getScanInterval();
-        this.scan();
-        this._loop = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, interval, this._runLoop.bind(this));
-    }
-
     lock_screen() {
-        Main.overview.hide();
-        Main.screenShield.lock(true);
+        if (!Main.screenShield.locked) {
+            Main.overview.hide();
+            Main.screenShield.lock(true);
+        }
     }
 
-    enable() {
+    unlock_screen() {
+        this._log('Device reconnected, unlocking screen');
+        Main.screenShield.deactivate(false);
+    }
+
+    async enable() {
         this._log('Enabling extension');
 
-        this._deviceAddress = this._settings.getDevice();
+        bluetooth.subscribe((device) => this._checkDevice(device));
 
-        this._deviceChangeHandlerId = this._settings._settings.connect('changed::mac', () => {
-            // reset last seen when device changed
-            if (this._deviceAddress !== this._settings.getDevice()) {
-                this._log('Device changed');
-                this._deviceAddress = this._settings.getDevice();
-                this._lastSeen = 0;
+        this._log('Subscribing to D-Bus signals');
+
+        let devices = await bluetooth.getDevices();
+        for (const device of devices) {
+            this._checkDevice(device);
+        }
+    }
+
+    async onDeviceChanged() {
+        this._clearLockTimeout();
+        this._settings.setLastSeen(0);
+        await this.checkNow();
+    }
+
+    async checkNow() {
+        let devices = await bluetooth.getDevices();
+        for (const device of devices) {
+            this._checkDevice(device);
+        }
+    }
+
+    _checkDevice(device) {
+
+        if (device.address !== this._settings.getDevice()) {
+            this._log(`BT -> Device ${device.name} [${device.address}] is not the target device ${this._settings.getDevice()}, ignoring.`);
+            return;
+        }
+
+        if (device.connected) {
+            this._log(`BT -> Device ${device.name} [${device.address}] is connected, resetting last seen time.`);
+            this._settings.setLastSeen(new Date().getTime());
+            this._clearLockTimeout();
+            if (this._settings.getAutoUnlock() && Main.screenShield.locked)
+                this.unlock_screen();
+            return;
+        }
+
+        let lastSeen = this._settings.getLastSeen();
+        if (lastSeen === 0) {
+            this._log(`BT -> Device ${device.name} [${device.address}] was not seen recently....`);
+            return;
+        }
+
+        let duration = this._settings.getAwayDuration() || 5;
+
+        this._settings.setLastSeen(0);
+        this._log(`BT -> Device ${device.address} is not connected, starting timer for ${duration} seconds.`);
+        this._lockTimeoutId = GLib.timeout_add_seconds(
+            GLib.PRIORITY_DEFAULT,
+            duration,   // delay in seconds before locking
+            () => {
+                this._lockTimeoutId = null;
+
+                // check if the device is still not connected
+                if (this._settings.getLastSeen() > 0) {
+                    this._log(`Device ${device.address} is now connected, cancelling lock timeout.`);
+                } else {
+                    this._log(`User stepped away for ${duration} seconds, locking the screen`);
+                    this.lock_screen();
+                }
+
+                // Clear the timeout to prevent it from running again
+                return GLib.SOURCE_REMOVE;
             }
-        });
+        );
+    }
 
-        this._runLoop();
+    _clearLockTimeout() {
+        if (this._lockTimeoutId) {
+            GLib.source_remove(this._lockTimeoutId);
+            this._lockTimeoutId = null;
+        }
+
+
     }
 
     disable() {
+        this._clearLockTimeout()
+
         this._log('Disabling extension');
 
-        this._deviceAddress = null;
-        this._lastSeen = 0;
+        this._settings.setLastSeen(0);
 
-        if (this._deviceChangeHandlerId)
-            this._settings._settings.disconnect(this._deviceChangeHandlerId);
-
-        if (this._loop) {
-            GLib.source_remove(this._loop);
-            this._loop = null;
-        }
+        bluetooth.disconnect();
     }
 
-    connect(device) {
-        this._client.connect_service(device.get_object_path(), true, null, (sourceObject, res) => {
-            try {
-                if (this._client.connect_service_finish(res)) {
-                    this._log('Connected to device');
-                    this._lastSeen = new Date().getTime();
-                }
-            } catch (error) {
-                this._log(`Error: ${error}`);
-            }
-        });
-    }
-
-    scan() {
-        // If not active, do nothing
-        if (!this._settings.getActive() || this._deviceAddress === '')
-            return;
-
-        try {
-            let store = this._client.get_devices();
-            let nIitems = store.get_n_items();
-            for (let i = 0; i < nIitems; i++) {
-                let device = store.get_item(i);
-                if (device.address === this._deviceAddress) {
-                    let now = new Date().getTime();
-                    if (!device.connected) {
-                        // Only check for timeout if  we ever seen device once
-                        if (this._lastSeen !== 0) {
-                            let duration = (now - this._lastSeen) / 1000;
-                            if (duration >= this._settings.getAwayDuration()) {
-                                this._lastSeen = 0;
-                                this._log(`User stepped away for ${duration} seconds, locking the screen`);
-                                this.lock_screen();
-                            }
-                        }
-                        // Try to connect to target device, cause Linux wont auto reconnect on some devices like smart phones
-                        this.connect(device);
-                    } else {
-                        this._lastSeen = now;
-                    }
-                    break;
-                }
-            }
-        } catch (error) {
-            this._log(`Error: ${error}`);
-        }
-    }
 };
 
 

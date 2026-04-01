@@ -20,7 +20,6 @@
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import Gio from 'gi://Gio';
 import Settings from './settings.js';
 import SmartLock from './smartlock.js';
 import Indicator from './indicator.js';
@@ -31,36 +30,50 @@ export default class BluetoothSmartLockExtension extends Extension {
         this.metadata = metadata;
     }
 
-
-    enable() {
+    async enable() {
         this._settings = Settings;
         this._settings.init(this.getSettings());
 
         this._indicator = new Indicator();
         this._indicator.init(this, this._settings);
-        
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         if (this._settings.getHideIndicator())
             Main.panel.statusArea[this.uuid].hide();
 
-        this._indicatorChangeSignal = this._settings._settings.connect('changed::indicator', () => {
-            if (this._settings.getHideIndicator())
+        this._indicatorChangeSignal = this._settings.connectIndicatorChangeSignal((hide) => {
+            if (hide)
                 Main.panel.statusArea[this.uuid].hide();
             else
                 Main.panel.statusArea[this.uuid].show();
         });
 
+        this._sessionModeSignal = Main.sessionMode.connect('updated', () => {
+            if (Main.sessionMode.currentMode === 'unlock-dialog')
+                this._indicator.hide();
+            else if (!this._settings.getHideIndicator())
+                this._indicator.show();
+        });
+
         this._smartLock = new SmartLock(this._settings);
-        this._smartLock.enable();
+        await this._smartLock.enable();
+        
+        this._deviceChangeSignal = this._settings.connectDeviceChangeSignal(async () => await this._smartLock.onDeviceChanged());
+
     }
 
     disable() {
         this._indicator.destroy();
         this._indicator = null;
 
+        if (this._deviceChangeSignal)
+            this._settings.disconnect(this._deviceChangeSignal);
+
         if (this._indicatorChangeSignal)
-            this._settings._settings.disconnect(this._indicatorChangeSignal);
+            this._settings.disconnect(this._indicatorChangeSignal);
+
+        if (this._sessionModeSignal)
+            Main.sessionMode.disconnect(this._sessionModeSignal);
 
         this._settings = null;
 

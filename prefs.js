@@ -1,8 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
-import Adw from 'gi://Adw'; // Import Adwaita for modern GNOME UI
-const { gettext: _ } = imports.gettext;
+import Adw from 'gi://Adw'; // Import Adwaita for modern GNOME UI// ExtensionPreferences is the base class for GTK4 preference windows
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -40,8 +39,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         // and Adw.PreferencesGroup. Your 'container' (e.g., a GtkBox)
         // should be placed inside an Adw.PreferencesGroup.
         const generalSettingsGroup = new Adw.PreferencesGroup({
-            title: _('General Settings'),
-            description: _('Basic settings for the extension.'),
+            title: this.gettext('General Settings'),
+            description: this.gettext('Basic settings for the extension.'),
         });
         generalSettingsGroup.add(container); // Add your UI container to the group
 
@@ -53,7 +52,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         builder.get_object('advanced_button').connect('clicked', () => {
             // Create a new Gtk.Dialog instance for advanced settings.
             const dialog = new Gtk.Dialog({
-                title: _('Advanced Settings'),
+                title: this.gettext('Advanced Settings'),
                 use_header_bar: true, // Gtk.Dialog in GTK4 defaults to using a HeaderBar
                 modal: true,         // Make the dialog modal
             });
@@ -84,12 +83,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 
             // Connect to the 'response' signal to clean up when the dialog is closed.
             dialog.connect('response', () => {
-                // Remove the box from the dialog's content area.
                 dialog.get_content_area().remove(advancedSettingsBox);
-                // Destroy the advanced settings box and its children.
-                advancedSettingsBox.destroy();
-                // Destroy the dialog itself.
-                dialog.destroy();
+                dialog.close();
             });
 
             // Show the dialog.
@@ -111,9 +106,9 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
-            'interval',
-            builder.get_object('scan_interval'),
-            'value', // Gtk.SpinButton uses 'value'
+            'auto-unlock',
+            builder.get_object('auto_unlock_switch'),
+            'active',
             Gio.SettingsBindFlags.DEFAULT
         );
         this._settings.bind(
