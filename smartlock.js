@@ -208,6 +208,8 @@ const SmartLock = class SmartLock {
             GLib.source_remove(this._disconnectTimeoutId);
             this._disconnectTimeoutId = null;
         }
+
+
     }
 
     _clearProximityTimeout() {
