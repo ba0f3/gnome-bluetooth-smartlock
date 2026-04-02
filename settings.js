@@ -1,5 +1,3 @@
-import Gio from 'gi://Gio';
-
 const ACTIVE_KEY = 'active';
 const AWAY_DURATION = 'duration-in-seconds';
 const HIDE_INDICATOR_KEY = 'indicator';
@@ -47,6 +45,39 @@ class Settings {
             this._settings.set_string(DEVICE_MAC_KEY, device);
     }
 
+    getProximityLock() {
+        return this._settings.get_boolean('proximity-lock');
+    }
+    setProximityLock(value) {
+        this._settings.set_boolean('proximity-lock', value);
+    }
+
+    getPollingInterval() {
+        return this._settings.get_int('polling-interval');
+    }
+    setPollingInterval(value) {
+        this._settings.set_int('polling-interval', value);
+    }
+
+    getReconnectPolling() {
+        return this._settings.get_boolean('reconnect-polling');
+    }
+
+    setReconnectPolling(value) {
+        this._settings.set_int('reconnect-polling', value);
+    }
+
+    getRssiThreshold() {
+        return this._settings.get_int('rssi-threshold');
+    }
+    setRssiThreshold(value) {
+        this._settings.set_int('rssi-threshold', value);
+    }
+
+    connectProximityLockSignal(cb) {
+        return this._settings.connect('changed::proximity-lock', () => cb(this.getProximityLock()));
+    }
+
     getAutoUnlock() {
         return this._settings.get_boolean(AUTO_UNLOCK_KEY);
     }
@@ -67,6 +98,10 @@ class Settings {
 
     connectLastSeenChangeSignal(cb) {
         return this._settings.connect(`changed::${LAST_SEEN}`, () => cb(this.getLastSeen()));
+    }
+
+    disconnectSignal(signalId) {
+        this._settings?.disconnect(signalId);
     }
 
     disconnect(signalId) {

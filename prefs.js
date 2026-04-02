@@ -1,7 +1,13 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
-import Adw from 'gi://Adw'; // Import Adwaita for modern GNOME UI// ExtensionPreferences is the base class for GTK4 preference windows
+import Adw from 'gi://Adw';
+
+import { isRssiServiceAvailable, RSSI_DBUS_NAME, RSSI_DBUS_PATH } from './bluetooth/rssi-service.js';
+import bluetooth from './bluetooth/dbus.js';
+import { extLog, extWarn } from './log.js';
+
+const LIVE_RSSI_INTERVAL_SECS = 1;
 
 // ExtensionPreferences is the base class for GTK4 preference windows
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -26,6 +32,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         // ExtensionPreferences provides this method, automatically linking
         // to your extension's GSettings schema based on its UUID.
         this._settings = this.getSettings();
+        const rssiAvailable = isRssiServiceAvailable();
 
         // Create a Gtk.Builder to load the UI from your settings.ui file.
         const builder = new Gtk.Builder();
@@ -63,7 +70,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             if (parentWindow instanceof Gtk.Window) {
                 dialog.set_transient_for(parentWindow);
             } else {
-                console.warn("Could not find a Gtk.Window parent for the preferences dialog.");
+                extWarn("Could not find a Gtk.Window parent for the preferences dialog.");
             }
 
             // Get the 'advanced_settings' box from the builder.
@@ -81,8 +88,83 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
             // Append the advanced settings box to the dialog's content area.
             dialog.get_content_area().append(advancedSettingsBox);
 
+            // Live RSSI reading — subscribe to signals while dialog is open.
+            // StartMonitoring is idempotent: if the extension already started it,
+            // this is a no-op. We never call StopMonitoring to avoid interfering
+            // with the extension's monitor — the service's idle timeout handles cleanup.
+            let rssiSignalId = null;
+            const rssiRow = builder.get_object('rssi_reading_row');
+            const rssiValue = builder.get_object('rssi_reading_value');
+            const targetDevice = this._settings.get_string('mac');
+
+            const hciIndex = targetDevice ? bluetooth.lookupHciIndex(targetDevice) : 0;
+
+            if (rssiAvailable && targetDevice) {
+                rssiRow.visible = true;
+                const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
+
+                rssiSignalId = bus.signal_subscribe(
+                    RSSI_DBUS_NAME,
+                    RSSI_DBUS_NAME,
+                    'RssiUpdate',
+                    RSSI_DBUS_PATH,
+                    null,
+                    Gio.DBusSignalFlags.NONE,
+                    (_conn, _sender, _path, _iface, _signal, params) => {
+                        const [address, rssi] = params.deep_unpack();
+                        extLog(`prefs RSSI: ${address} rssi=${rssi}`);
+                        if (address === targetDevice)
+                            rssiValue.label = `${rssi} dBm`;
+                    }
+                );
+
+                bus.call(
+                    RSSI_DBUS_NAME,
+                    RSSI_DBUS_PATH,
+                    RSSI_DBUS_NAME,
+                    'StartMonitoring',
+                    new GLib.Variant('(suq)', [targetDevice, LIVE_RSSI_INTERVAL_SECS, hciIndex]),
+                    null,
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    null,
+                    (conn, res) => {
+                        try {
+                            conn.call_finish(res);
+                            extLog(`prefs StartMonitoring OK for ${targetDevice}`);
+                        } catch (e) {
+                            extLog(`prefs StartMonitoring failed: ${e.message}`);
+                            rssiValue.label = this.gettext('unavailable');
+                        }
+                    }
+                );
+            }
+
             // Connect to the 'response' signal to clean up when the dialog is closed.
             dialog.connect('response', () => {
+                if (rssiSignalId !== null) {
+                    const bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, null);
+                    bus.signal_unsubscribe(rssiSignalId);
+
+                    // Restart monitoring at the normal polling interval
+                    // (the dialog used a faster rate for live display).
+                    if (targetDevice) {
+                        const normalInterval = this._settings.get_int('polling-interval');
+                        bus.call(
+                            RSSI_DBUS_NAME,
+                            RSSI_DBUS_PATH,
+                            RSSI_DBUS_NAME,
+                            'StartMonitoring',
+                            new GLib.Variant('(suq)', [targetDevice, normalInterval, hciIndex]),
+                            null,
+                            Gio.DBusCallFlags.NONE,
+                            -1,
+                            null,
+                            null
+                        );
+                    }
+                }
+
                 dialog.get_content_area().remove(advancedSettingsBox);
                 dialog.close();
             });
@@ -114,8 +196,48 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
         this._settings.bind(
             'duration-in-seconds',
             builder.get_object('duration'),
-            'value', // Gtk.SpinButton uses 'value'
+            'value',
             Gio.SettingsBindFlags.DEFAULT
         );
+        this._settings.bind(
+            'reconnect-polling',
+            builder.get_object('reconnect_polling_switch'),
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
+            'proximity-lock',
+            builder.get_object('proximity_lock_switch'),
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
+            'rssi-threshold',
+            builder.get_object('rssi_threshold'),
+            'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this._settings.bind(
+            'polling-interval',
+            builder.get_object('polling_interval'),
+            'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
+        // Disable RSSI controls if the bt-rssi service is not installed.
+        // Must run after settings.bind() which resets widget state.
+        if (!rssiAvailable) {
+            const tooltip = this.gettext('bt-rssi service is not installed');
+            for (const id of ['proximity_lock', 'rssi_threshold', 'polling_interval']) {
+                const widget = builder.get_object(id === 'proximity_lock' ? 'proximity_lock_switch' : id);
+                const label = builder.get_object(`${id}_label`);
+                const icon = builder.get_object(`${id}_icon`);
+                widget.sensitive = false;
+                widget.tooltip_text = tooltip;
+                label.tooltip_text = tooltip;
+                icon.visible = true;
+                icon.tooltip_text = tooltip;
+            }
+        }
     }
 }

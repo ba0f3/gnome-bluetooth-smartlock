@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.gnome.BluetoothRSSI
+Exec=/usr/local/bin/bt-rssi
+SystemdService=bt-rssi.service

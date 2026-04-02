@@ -4,8 +4,10 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 
 import bluetooth from "./bluetooth/dbus.js";
+import { extErr } from './log.js';
 
 class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name for the raw class
     constructor() {
@@ -101,13 +103,25 @@ class SmartlockIndicatorClass extends PanelMenu.Button { // Use a temporary name
 
             let icon = new Gio.ThemedIcon({ name: 'preferences-other-symbolic' });
             let settingsMenu = new PopupMenu.PopupImageMenuItem(_('Settings'), icon);
+            // openPreferences() returns undefined and does not propagate
+            // the Promise from the internal promisified DBus call, causing
+            // an unhandled rejection warning when the prefs window is
+            // already open. Calling the DBus method directly avoids this.
+            // this._extension.openPreferences();
             settingsMenu.connect('activate', () => {
-                this._extension.openPreferences().catch(() => {});
+                Gio.DBus.session.call(
+                    'org.gnome.Shell.Extensions',
+                    '/org/gnome/Shell/Extensions',
+                    'org.gnome.Shell.Extensions',
+                    'OpenExtensionPrefs',
+                    new GLib.Variant('(ssa{sv})', [this._extension.uuid, '', {}]),
+                    null, Gio.DBusCallFlags.NONE, -1, null)
+                .catch(() => {});
             });
             this.menu.addMenuItem(settingsMenu);
         } catch (e) {
             if (!this._destroyed)
-                logError(e, 'Failed to build Bluetooth Smartlock menu');
+                extErr('Failed to build Bluetooth Smartlock menu', e);
         } finally {
             this._creatingMenu = false;
         }

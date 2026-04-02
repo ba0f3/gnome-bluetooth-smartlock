@@ -1,0 +1,54 @@
+[workspace]
+name        = "bt-rssi"
+version     = "0.1.0"
+description = "Bluetooth RSSI D-Bus service for gnome-bluetooth-smartlock"
+channels    = ["conda-forge"]
+platforms   = ["linux-64"]
+
+[dependencies]
+rust = ">=1.94.0,<2"
+
+# ── development tasks ────────────────────────────────────────────────────────
+
+[tasks]
+check   = "cargo check"
+build   = "cargo build --release"
+fmt     = "cargo fmt"
+clippy  = "cargo clippy -- -D warnings"
+clean   = "cargo clean"
+
+# ── installation tasks ───────────────────────────────────────────────────────
+
+[tasks.install-bin]
+description = "Install binary to /usr/local/bin"
+depends-on  = ["build"]
+cmd = "sudo install -Dm755 target/release/bt-rssi /usr/local/bin/bt-rssi"
+
+[tasks.install-service]
+description = "Install systemd unit, D-Bus policy and activation files"
+cmd = """
+sudo install -Dm644 ../bt-rssi.service \
+    /etc/systemd/system/bt-rssi.service &&
+sudo install -Dm644 ../org.gnome.BluetoothRSSI.conf \
+    /etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf &&
+sudo install -Dm644 ../org.gnome.BluetoothRSSI.dbus-service \
+    /usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service &&
+sudo systemctl daemon-reload &&
+sudo systemctl reload dbus.service
+"""
+
+[tasks.install]
+description = "Full install: binary + service files"
+depends-on  = ["install-bin", "install-service"]
+
+[tasks.uninstall]
+description = "Remove binary and service files"
+cmd = """
+sudo systemctl disable --now bt-rssi.service 2>/dev/null || true &&
+sudo rm -f /usr/local/bin/bt-rssi \
+           /etc/systemd/system/bt-rssi.service \
+           /etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf \
+           /usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service &&
+sudo systemctl daemon-reload &&
+sudo systemctl reload dbus.service
+"""

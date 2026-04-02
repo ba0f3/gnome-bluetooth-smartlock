@@ -10,7 +10,8 @@
             <summary>Hide or show indicator</summary>
         </key>
         <key name="duration-in-seconds" type="i">
-            <default>3</default>
+            <default>5</default>
+            <range min="1" max="3600"/>
             <summary>Away duration (seconds)</summary>
         </key>
         <key name="mac" type="s">
@@ -20,6 +21,24 @@
         <key name="auto-unlock" type="b">
             <default>false</default>
             <summary>Auto-unlock screen when device reconnects</summary>
+        </key>
+        <key name="proximity-lock" type="b">
+            <default>false</default>
+            <summary>Lock screen when RSSI drops below threshold</summary>
+        </key>
+        <key name="polling-interval" type="i">
+            <default>5</default>
+            <range min="1" max="60"/>
+            <summary>Polling interval in seconds for RSSI reads and reconnect attempts</summary>
+        </key>
+        <key name="rssi-threshold" type="i">
+            <default>-10</default>
+            <range min="-100" max="0"/>
+            <summary>RSSI threshold (dBm) below which the screen locks</summary>
+        </key>
+        <key name="reconnect-polling" type="b">
+            <default>false</default>
+            <summary>Actively page the device to detect its return</summary>
         </key>
         <key name="last-seen" type="x">
             <default>0</default>

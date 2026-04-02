@@ -1,255 +1,415 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 -->
-<!--
-Copyright 2022 Huy Doan
-SPDX-License-Identifier: GPL-2.0-or-later
-(see extension.js for details)
--->
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0 -->
 <interface>
-  <requires lib="gtk+" version="3.12"/>
+  <!-- interface-name settings-gtk4.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkAdjustment" id="rssi_adjustment">
+    <property name="lower">-100</property>
+    <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="value">-10</property>
+  </object>
+  <object class="GtkAdjustment" id="polling_interval_adjustment">
+    <property name="lower">1</property>
+    <property name="page-increment">5</property>
+    <property name="step-increment">1</property>
+    <property name="upper">60</property>
+    <property name="value">5</property>
+  </object>
   <object class="GtkAdjustment" id="away_duration_adjustment">
     <property name="lower">1</property>
-    <property name="upper">3600</property>
-    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+    <property name="step-increment">1</property>
+    <property name="upper">3600</property>
   </object>
   <object class="GtkBox" id="advanced_settings">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="margin-start">24</property>
-    <property name="margin-end">24</property>
-    <property name="margin-top">24</property>
     <property name="margin-bottom">24</property>
+    <property name="margin-end">24</property>
+    <property name="margin-start">24</property>
+    <property name="margin-top">24</property>
     <property name="orientation">vertical</property>
     <property name="spacing">24</property>
     <child>
       <object class="GtkFrame">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label-xalign">0</property>
-        <child>
+        <property name="child">
           <object class="GtkListBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
             <property name="selection-mode">none</property>
             <child>
               <object class="GtkListBoxRow">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <child>
+                <property name="child">
                   <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="margin-top">12</property>
                     <property name="margin-bottom">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">12</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
                         <property name="label" translatable="yes">Away duration (seconds)</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="duration">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="halign">end</property>
-                        <property name="hexpand">True</property>
-                        <property name="text">1</property>
                         <property name="adjustment">away_duration_adjustment</property>
                         <property name="climb-rate">1</property>
-                        <property name="snap-to-ticks">True</property>
-                        <property name="numeric">True</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="numeric">1</property>
+                        <property name="snap-to-ticks">1</property>
+                        <property name="text">1</property>
                         <property name="value">1</property>
                       </object>
                     </child>
                   </object>
-                </child>
+                </property>
+                <property name="focusable">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="margin-bottom">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">12</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="halign">start</property>
+                        <property name="hexpand">1</property>
+                        <property name="label" translatable="yes">Reconnect polling</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="reconnect_polling_switch">
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="valign">center</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+                <property name="focusable">1</property>
               </object>
             </child>
           </object>
-        </child>
+        </property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkFrame">
+        <property name="child">
+          <object class="GtkListBox">
+            <property name="selection-mode">none</property>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="margin-bottom">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">12</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="rssi_threshold_label">
+                            <property name="label" translatable="yes">RSSI threshold (dBm)</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage" id="rssi_threshold_icon">
+                            <property name="icon-name">dialog-information-symbolic</property>
+                            <property name="visible">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="rssi_threshold">
+                        <property name="adjustment">rssi_adjustment</property>
+                        <property name="climb-rate">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="numeric">1</property>
+                        <property name="snap-to-ticks">1</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+                <property name="focusable">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="margin-bottom">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">12</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkLabel" id="polling_interval_label">
+                            <property name="label" translatable="yes">Polling interval (seconds)</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkImage" id="polling_interval_icon">
+                            <property name="icon-name">dialog-information-symbolic</property>
+                            <property name="visible">0</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="polling_interval">
+                        <property name="adjustment">polling_interval_adjustment</property>
+                        <property name="climb-rate">1</property>
+                        <property name="focusable">1</property>
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="numeric">1</property>
+                        <property name="snap-to-ticks">1</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+                <property name="focusable">1</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow" id="rssi_reading_row">
+                <property name="activatable">0</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="margin-bottom">12</property>
+                    <property name="margin-end">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">12</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Current RSSI</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="rssi_reading_value">
+                        <property name="halign">end</property>
+                        <property name="hexpand">1</property>
+                        <property name="label">—</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+                <property name="visible">0</property>
+              </object>
+            </child>
+          </object>
+        </property>
       </object>
     </child>
   </object>
   <object class="GtkScrolledWindow" id="container">
-    <property name="visible">True</property>
-    <property name="can-focus">True</property>
-    <property name="vexpand">True</property>
-    <property name="hscrollbar-policy">never</property>
-    <child>
+    <property name="child">
       <object class="GtkViewport" id="main">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <child>
+        <property name="child">
           <object class="GtkBox" id="bluetooth_smartlock_settings">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="margin-start">24</property>
-            <property name="margin-end">24</property>
-            <property name="margin-top">24</property>
             <property name="margin-bottom">24</property>
+            <property name="margin-end">24</property>
+            <property name="margin-start">24</property>
+            <property name="margin-top">24</property>
             <property name="orientation">vertical</property>
             <property name="spacing">24</property>
             <child>
               <object class="GtkFrame">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label-xalign">0</property>
-                <child>
+                <property name="child">
                   <object class="GtkListBox">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
                     <property name="selection-mode">none</property>
                     <child>
                       <object class="GtkListBoxRow">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=1 -->
+                        <property name="child">
                           <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-top">12</property>
-                            <property name="margin-bottom">12</property>
                             <property name="column-spacing">32</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">12</property>
                             <child>
                               <object class="GtkSwitch" id="active_switch">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
+                                <property name="focusable">1</property>
                                 <property name="halign">end</property>
                                 <property name="valign">center</property>
-                                <property name="active">True</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="hexpand">True</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Activate</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                           </object>
-                        </child>
+                        </property>
+                        <property name="focusable">1</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkListBoxRow">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=1 -->
+                        <property name="child">
                           <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-top">12</property>
-                            <property name="margin-bottom">12</property>
                             <property name="column-spacing">32</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">12</property>
                             <child>
                               <object class="GtkSwitch" id="hide_indicator_switch">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
+                                <property name="focusable">1</property>
                                 <property name="halign">end</property>
                                 <property name="valign">center</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="hexpand">True</property>
+                                <property name="hexpand">1</property>
                                 <property name="label" translatable="yes">Hide indicator</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                           </object>
-                        </child>
+                        </property>
+                        <property name="focusable">1</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkListBoxRow">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=1 -->
+                        <property name="child">
                           <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-top">12</property>
-                            <property name="margin-bottom">12</property>
                             <property name="column-spacing">32</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">12</property>
                             <child>
                               <object class="GtkSwitch" id="auto_unlock_switch">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
+                                <property name="focusable">1</property>
                                 <property name="halign">end</property>
                                 <property name="valign">center</property>
-                                <property name="active">True</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                             <child>
                               <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="hexpand">True</property>
-                                <property name="label" translatable="yes">Auto-unlock when device reconnects</property>
+                                <property name="hexpand">1</property>
+                                <property name="label" translatable="yes">Unlock automatically</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                           </object>
-                        </child>
+                        </property>
+                        <property name="focusable">1</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkListBoxRow">
-                        <property name="width-request">100</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=1 -->
+                        <property name="child">
                           <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="margin-end">12</property>
-                            <property name="margin-top">12</property>
-                            <property name="margin-bottom">12</property>
                             <property name="column-spacing">32</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">12</property>
                             <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="hexpand">True</property>
-                                <property name="label" translatable="yes">Advanced settings</property>
-                                <property name="use-markup">True</property>
+                              <object class="GtkSwitch" id="proximity_lock_switch">
+                                <property name="focusable">1</property>
+                                <property name="halign">end</property>
+                                <property name="valign">center</property>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                             <child>
                               <object class="GtkBox">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">1</property>
                                 <property name="spacing">6</property>
                                 <child>
+                                  <object class="GtkLabel" id="proximity_lock_label">
+                                    <property name="label" translatable="yes">Proximity lock (RSSI)</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkImage" id="proximity_lock_icon">
+                                    <property name="icon-name">dialog-information-symbolic</property>
+                                    <property name="visible">0</property>
+                                  </object>
+                                </child>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                        <property name="focusable">1</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkListBoxRow">
+                        <property name="child">
+                          <object class="GtkGrid">
+                            <property name="column-spacing">32</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-end">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">12</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">1</property>
+                                    <property name="label" translatable="yes">Advanced settings</property>
+                                    <property name="use-markup">1</property>
+                                  </object>
+                                </child>
+                                <child>
                                   <object class="GtkButton" id="advanced_button">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
+                                    <property name="focusable">1</property>
+                                    <property name="receives-default">1</property>
                                     <property name="valign">center</property>
                                     <child>
                                       <object class="GtkImage" id="advaned_button_image">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
                                         <property name="icon-name">emblem-system-symbolic</property>
                                       </object>
                                     </child>
@@ -258,25 +418,28 @@ SPDX-License-Identifier: GPL-2.0-or-later
                                     </style>
                                   </object>
                                 </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
+                                <layout>
+                                  <property name="column">0</property>
+                                  <property name="row">0</property>
+                                </layout>
                               </object>
                             </child>
                           </object>
-                        </child>
+                        </property>
+                        <property name="focusable">1</property>
+                        <property name="width-request">100</property>
                       </object>
                     </child>
                   </object>
-                </child>
-                <child type="label_item">
-                  <placeholder/>
-                </child>
+                </property>
               </object>
             </child>
           </object>
-        </child>
+        </property>
       </object>
-    </child>
+    </property>
+    <property name="focusable">1</property>
+    <property name="hscrollbar-policy">never</property>
+    <property name="vexpand">1</property>
   </object>
 </interface>
