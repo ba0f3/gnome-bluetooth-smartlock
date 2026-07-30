@@ -14,9 +14,10 @@ Restart=on-failure
 AmbientCapabilities=CAP_NET_ADMIN
 CapabilityBoundingSet=CAP_NET_ADMIN
 
-# DynamicUser creates a "bt-rssi" user at runtime (stable UID, no /etc/passwd entry).
-# The D-Bus policy references this name via nss-systemd.
-DynamicUser=yes
+# DynamicUser was tried here but the classic dbus-daemon on this system fails
+# to authenticate its transient synthetic UID against the system bus
+# (connection dies with BrokenPipe immediately). Runs as root instead;
+# CapabilityBoundingSet below still limits it to CAP_NET_ADMIN only.
 
 # Hardening
 NoNewPrivileges=true

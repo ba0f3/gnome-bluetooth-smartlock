@@ -47,7 +47,7 @@ impl BtRssiService {
             handle.abort();
         }
 
-        let addr      = address;
+        let addr      = address.clone();
         let tx        = self.tx.clone();
         let interval  = Duration::from_secs(interval_seconds.max(1) as u64);
         let tasks_ref = self.tasks.clone();
