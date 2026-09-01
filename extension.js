@@ -77,7 +77,8 @@ export default class BluetoothSmartLockExtension extends Extension {
 
         this._settings = null;
 
-        this._smartLock.disable();
+        if (this._smartLock)
+            this._smartLock.disable();
         this._smartLock = null;
     }
 }

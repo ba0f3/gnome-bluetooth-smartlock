@@ -64,7 +64,7 @@ class Settings {
     }
 
     setReconnectPolling(value) {
-        this._settings.set_int('reconnect-polling', value);
+        this._settings.set_boolean('reconnect-polling', value);
     }
 
     getRssiThreshold() {
