@@ -7,6 +7,7 @@
   "gettext-domain": "bluetooth-smartlock",
   "shell-version": [
     "46",
+    "47",
     "48",
     "49",
     "50"
