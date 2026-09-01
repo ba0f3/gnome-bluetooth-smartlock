@@ -23,10 +23,19 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             -o Dpkg::Options::="--force-confdef" \
             -o Dpkg::Options::="--force-confold" \
-            gettext gnome-shell
+            gettext gnome-shell cargo
 
       - name: Build extension package
         run: make dist
+
+      - name: Build and test bt-rssi service
+        run: |
+          cd services/bt-rssi
+          cargo build --release
+          cargo test
+
+      - name: Package bt-rssi service
+        run: make service-dist
 
       # Use gh instead of a third-party action so local `act` does not need to git-clone actions (avoids host GitHub auth issues).
       - name: Publish GitHub Release
@@ -39,4 +48,5 @@ jobs:
           }
           gh release create "${{ github.ref_name }}" \
             bluetooth-smartlock@ba0f3.github.com.shell-extension.zip \
+            bt-rssi-*.tar.gz \
             --generate-notes
