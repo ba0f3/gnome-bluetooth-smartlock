@@ -4,3 +4,5 @@
 *.po~
 services/bt-rssi/target/
 bt-rssi-*.tar.gz
+.omo/
+.DS_Store
