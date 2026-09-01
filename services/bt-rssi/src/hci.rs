@@ -81,6 +81,10 @@ pub fn parse_mac(mac: &str) -> Result<[u8; 6], RssiError> {
     }
     let mut addr = [0u8; 6];
     for (i, p) in parts.iter().enumerate() {
+        // Guard against single-char octets like "F", which from_str_radix accepts.
+        if p.len() != 2 {
+            return Err(RssiError::InvalidAddress(mac.to_owned()));
+        }
         addr[5 - i] = u8::from_str_radix(p, 16)
             .map_err(|_| RssiError::InvalidAddress(mac.to_owned()))?;
     }

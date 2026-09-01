@@ -2,6 +2,8 @@
 name = "bt-rssi"
 version = "0.1.0"
 edition = "2024"
+description = "Bluetooth RSSI D-Bus service for the GNOME Shell Bluetooth Smart Lock extension"
+license = "MIT"
 
 [[bin]]
 name = "bt-rssi"
@@ -32,5 +34,44 @@ assets = [
     ["../../services/org.gnome.BluetoothRSSI.dbus-service",      "share/dbus-1/system-services/org.gnome.BluetoothRSSI.service", "644"],
 ]
 
-[package.metadata.rpm]
-spec = "rpm/bt-rssi.spec"
+[package.metadata.generate-rpm]
+release = "1"
+auto-req = "disabled"
+require-sh = false
+
+assets = [
+    { source = "target/release/bt-rssi",                                             dest = "/usr/bin/bt-rssi",                                                          mode = "755" },
+    { source = "../bt-rssi.service",                                                 dest = "/usr/lib/systemd/system/bt-rssi.service",                                    mode = "644" },
+    { source = "../org.gnome.BluetoothRSSI.conf",                                    dest = "/etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf",                        mode = "644" },
+    { source = "../org.gnome.BluetoothRSSI.dbus-service",                            dest = "/usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service",         mode = "644" },
+]
+
+pre_install_script = """
+getent group bt-rssi >/dev/null || groupadd -r bt-rssi
+getent passwd bt-rssi >/dev/null || useradd -r -g bt-rssi -s /usr/sbin/nologin -d / -M bt-rssi
+"""
+
+post_install_script = """
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    systemctl enable bt-rssi.service >/dev/null 2>&1 || :
+    systemctl restart bt-rssi.service >/dev/null 2>&1 || :
+fi
+systemctl reload dbus.service >/dev/null 2>&1 || :
+"""
+
+pre_uninstall_script = """
+if [ "$1" = "0" ] && [ -d /run/systemd/system ]; then
+    systemctl --no-reload disable --now bt-rssi.service >/dev/null 2>&1 || :
+fi
+"""
+
+post_uninstall_script = """
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+"""
+
+[package.metadata.generate-rpm.requires]
+systemd = "*"
+dbus = "*"

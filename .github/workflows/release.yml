@@ -43,8 +43,8 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             -o Dpkg::Options::="--force-confdef" \
             -o Dpkg::Options::="--force-confold" \
-            dpkg-dev rpm
-          cargo install cargo-deb cargo-rpm
+            dpkg-dev
+          cargo install cargo-deb cargo-generate-rpm
 
       - name: Build .deb and .rpm
         run: make service-package
@@ -57,8 +57,11 @@ jobs:
           echo "rpm=$(find services/bt-rssi/target/generate-rpm -name '*.rpm' | head -n1)" \
                >> "$GITHUB_OUTPUT"
 
-      # Use gh instead of a third-party action so local `act` does not need to git-clone actions (avoids host GitHub auth issues).
+      # Branch pushes build and test but must not publish; only tags create releases.
+      # Use gh instead of a third-party action so local `act` does not need to
+      # git-clone actions (avoids host GitHub auth issues).
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -55,19 +55,22 @@ explicitly out of scope here.
 
 ### 1. Tooling
 
-`cargo-deb` and `cargo-rpm` — the standard Rust-native packagers. Both
-read metadata directly from `services/bt-rssi/Cargo.toml`, so the
-packaging config lives with the code it packages (no separate `.spec`
-or `debian/` tree to maintain).
+`cargo-deb` and `cargo-generate-rpm` — the standard Rust-native
+packagers. Both read metadata directly from
+`services/bt-rssi/Cargo.toml`, so the packaging config lives with the
+code it packages (no separate `debian/` tree or `.spec` file to
+maintain). `cargo-generate-rpm` builds the RPM via the pure-Rust `rpm`
+crate, so no system `rpmbuild`/`rpm` binary is required on the CI
+runner.
 
 - `cargo-deb` → produces
   `services/bt-rssi/target/debian/bt-rssi_<version>_<arch>.deb`.
-- `cargo-rpm` → produces
-  `services/bt-rssi/target/generate-rpm/bt-rssi-<version>-1.<arch>.rpm`.
+- `cargo-generate-rpm` → produces
+  `services/bt-rssi/target/generate-rpm/bt-rssi-<version>-<arch>.rpm`.
 
-Both install via `cargo install cargo-deb cargo-rpm`. The Ubuntu
-runner already has `cargo`; we add `dpkg-dev` and `rpm` to the apt
-install list in CI.
+Both install via `cargo install cargo-deb cargo-generate-rpm`. The
+Ubuntu runner already has `cargo`; we add `dpkg-dev` to the apt
+install list in CI (`cargo-generate-rpm` needs no system RPM tooling).
 
 ### 2. Asset mapping
 
@@ -96,9 +99,17 @@ Rationale:
 
 ### 3. `services/bt-rssi/Cargo.toml` additions
 
-Append two metadata blocks. The `[package]` section is unchanged.
+Add `description` and `license` to `[package]` (both are required by
+`cargo-generate-rpm`), then append two metadata blocks:
 
 ```toml
+[package]
+name = "bt-rssi"
+version = "0.1.0"
+edition = "2024"
+description = "Bluetooth RSSI D-Bus service for the GNOME Shell Bluetooth Smart Lock extension"
+license = "MIT"
+
 [package.metadata.deb]
 maintainer            = "ba0f3 <noreply@github.com>"
 copyright             = "2026, ba0f3"
@@ -119,14 +130,29 @@ assets = [
     ["../../services/org.gnome.BluetoothRSSI.dbus-service",      "share/dbus-1/system-services/org.gnome.BluetoothRSSI.service", "644"],
 ]
 
-[package.metadata.rpm]
-spec = "rpm/bt-rssi.spec"
+[package.metadata.generate-rpm]
+release = "1"
+auto-req = "disabled"
+require-sh = false
+
+assets = [
+    { source = "target/release/bt-rssi",                          dest = "/usr/bin/bt-rssi",                             mode = "755" },
+    { source = "../bt-rssi.service",                              dest = "/usr/lib/systemd/system/bt-rssi.service",      mode = "644" },
+    { source = "../org.gnome.BluetoothRSSI.conf",                 dest = "/etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf",      mode = "644" },
+    { source = "../org.gnome.BluetoothRSSI.dbus-service",         dest = "/usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+systemd = "*"
+dbus = "*"
 ```
 
-The `[package.metadata.rpm]` block is intentionally minimal — it
-points `cargo rpm build` at our custom spec, which is the source of
-truth for file lists, hooks, and dependencies. cargo-rpm will not
-generate a spec from metadata when `spec` is set.
+`cargo-generate-rpm` is configured entirely from
+`[package.metadata.generate-rpm]`; the file list, setuid/systemd
+scriptlets, and dependencies all live in the Cargo metadata rather
+than an external `.spec` file. The `src` for each asset is resolved
+relative to `services/bt-rssi/` (the crate root), so the three
+`services/*` files are referenced as `../<name>`.
 
 ### 4. Post-install behavior
 
@@ -154,25 +180,47 @@ if [ -d /run/systemd/system ]; then
 fi
 ```
 
-**`.rpm` `%post` / `%preun` / `%postun`** in
-`services/bt-rssi/rpm/bt-rssi.spec`:
+**`.rpm` setuid / systemd scriptlets** are expressed as
+`pre_install_script` / `post_install_script` / `pre_uninstall_script`
+/ `post_uninstall_script` strings in
+`[package.metadata.generate-rpm]`:
 
-```spec
-%post
-%systemd_post bt-rssi.service
-systemctl reload dbus.service 2>/dev/null || :
-
-%preun
-%systemd_preun bt-rssi.service
-
-%postun
-%systemd_postun_with_restart bt-rssi.service
-systemctl reload dbus.service 2>/dev/null || :
+```toml
+pre_install_script = """
+getent group bt-rssi >/dev/null || groupadd -r bt-rssi
+getent passwd bt-rssi >/dev/null || useradd -r -g bt-rssi -s /usr/sbin/nologin -d / -M bt-rssi
+"""
+post_install_script = """
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    systemctl enable bt-rssi.service >/dev/null 2>&1 || :
+    systemctl restart bt-rssi.service >/dev/null 2>&1 || :
+fi
+systemctl reload dbus.service >/dev/null 2>&1 || :
+"""
+pre_uninstall_script = """
+if [ "$1" = "0" ] && [ -d /run/systemd/system ]; then
+    systemctl --no-reload disable --now bt-rssi.service >/dev/null 2>&1 || :
+fi
+"""
+post_uninstall_script = """
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+"""
 ```
 
-Both Debian and RPM conventions tolerate the `dbus.service` reload
-failing (some distros don't expose it as a unit); the `2>/dev/null ||
-true` (Debian) / `|| :` (RPM) guards keep the postinst non-fatal.
+These differ from the original `%post` / `%preun` / `%postun` spec
+sketch in two ways. First, `cargo-generate-rpm` inlines the scripts in
+TOML rather than using an external `.spec`, so the `rpm` crate's
+`rpmbuild` macros are unavailable; plain `systemctl` calls are used
+instead. Second, the `dbus.service` reload is tolerated failing (some
+distros don't expose it as a unit); the `2>/dev/null || :` guards keep
+the scriptlets non-fatal.
+
+The setuid `bt-rssi` user is created in `pre_install` and the systemd
+unit is enabled/started in `post_install`, so package installs on both
+Debian and RPM distros get an auto-started, least-privilege service.
 
 `install.sh` stays non-auto-enable. The two paths have different
 defaults because they target different audiences: tarball users are
@@ -192,12 +240,12 @@ service-package-deb: service-build
 	cd $(SERVICE_DIR) && cargo deb
 
 service-package-rpm: service-build
-	cd $(SERVICE_DIR) && cargo rpm build
+	cd $(SERVICE_DIR) && cargo generate-rpm
 
 service-package: service-package-deb service-package-rpm
 ```
 
-The RPM target path is intentionally not pinned — `cargo rpm build`
+The RPM target path is intentionally not pinned — `cargo generate-rpm`
 writes to `target/generate-rpm/...` with a path that depends on the
 host architecture. The CI step that locates the artifact globs for it.
 
@@ -213,8 +261,8 @@ step and before "Publish GitHub Release":
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             -o Dpkg::Options::="--force-confdef" \
             -o Dpkg::Options::="--force-confold" \
-            dpkg-dev rpm
-          cargo install cargo-deb cargo-rpm
+            dpkg-dev
+          cargo install cargo-deb cargo-generate-rpm
 
       - name: Build .deb and .rpm
         run: make service-package
@@ -298,10 +346,9 @@ Find all of them at
 
 | Component                              | Type     | Purpose                                                       |
 |----------------------------------------|----------|---------------------------------------------------------------|
-| `services/bt-rssi/Cargo.toml`          | update   | Add `[package.metadata.deb]` and `[package.metadata.rpm]` blocks |
+| `services/bt-rssi/Cargo.toml`          | update   | Add `[package.metadata.deb]` and `[package.metadata.generate-rpm]` blocks |
 | `services/bt-rssi/debian/postinst`     | new      | `.deb` post-install hook (daemon-reload, enable, restart)     |
 | `services/bt-rssi/debian/prerm`        | new      | `.deb` pre-removal hook (disable + stop service)              |
-| `services/bt-rssi/rpm/bt-rssi.spec`    | new      | `.rpm` spec template with `%post` / `%preun` / `%postun` hooks |
 | `Makefile`                             | append   | `service-package-deb`, `service-package-rpm`, `service-package` |
 | `.github/workflows/release.yml`        | update   | Install packagers, build packages, attach to release          |
 | `services/README.md`                   | update   | Native packages install section, FHS path table               |
@@ -316,7 +363,7 @@ Packages only change *how the binary gets onto disk*, not what it does.
 ## Error Handling
 
 - `cargo deb` failures fail the CI step (non-zero exit).
-- `cargo rpm build` failures fail the CI step.
+- `cargo generate-rpm` failures fail the CI step.
 - Post-install hook failures are non-fatal: `dbus.service` may not be
   a unit on every distro, and we explicitly tolerate that. A failure
   to enable the service is also tolerated — the user can re-run
@@ -329,14 +376,14 @@ Packages only change *how the binary gets onto disk*, not what it does.
 
 CI:
 
-- `cargo deb` and `cargo rpm build` both run on every push and tag.
+- `cargo deb` and `cargo generate-rpm` both run on every push and tag.
 - Artifact presence in the release is verifiable by `gh release view`.
 
 Manual smoke (the plan will include the commands, the operator runs them
 on a Linux box):
 
-1. `make service-package` (or the equivalent `cargo deb` / `cargo rpm
-   build` invocations) succeeds and produces two artifacts.
+1. `make service-package` (or the equivalent `cargo deb` / `cargo
+   generate-rpm` invocations) succeeds and produces two artifacts.
 2. On a Debian/Ubuntu VM: `sudo apt install ./bt-rssi_*.deb` →
    `systemctl status bt-rssi.service` shows the service active;
    `busctl introspect org.gnome.BluetoothRSSI /org/gnome/BluetoothRSSI`

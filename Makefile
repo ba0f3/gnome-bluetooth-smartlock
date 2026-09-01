@@ -60,6 +60,6 @@ service-package-deb: service-build
 	cd $(SERVICE_DIR) && cargo deb
 
 service-package-rpm: service-build
-	cd $(SERVICE_DIR) && cargo rpm build
+	cd $(SERVICE_DIR) && cargo generate-rpm
 
 service-package: service-package-deb service-package-rpm
