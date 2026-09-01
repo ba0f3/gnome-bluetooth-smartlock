@@ -27,6 +27,7 @@ cmd = "sudo install -Dm755 target/release/bt-rssi /usr/local/bin/bt-rssi"
 [tasks.install-service]
 description = "Install systemd unit, D-Bus policy and activation files"
 cmd = """
+sudo useradd --system --shell /usr/sbin/nologin bt-rssi 2>/dev/null || true &&
 sudo install -Dm644 ../bt-rssi.service \
     /etc/systemd/system/bt-rssi.service &&
 sudo install -Dm644 ../org.gnome.BluetoothRSSI.conf \
@@ -49,6 +50,7 @@ sudo rm -f /usr/local/bin/bt-rssi \
            /etc/systemd/system/bt-rssi.service \
            /etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf \
            /usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service &&
+sudo userdel bt-rssi 2>/dev/null || true &&
 sudo systemctl daemon-reload &&
 sudo systemctl reload dbus.service
 """

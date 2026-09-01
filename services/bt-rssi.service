@@ -10,14 +10,18 @@ BusName=org.gnome.BluetoothRSSI
 ExecStart=/usr/local/bin/bt-rssi
 Restart=on-failure
 
-# CAP_NET_ADMIN for the HCI management socket (HCI_CHANNEL_CONTROL).
+# Runs as a dedicated unprivileged system user.
+# CAP_NET_ADMIN is required for the HCI management socket (HCI_CHANNEL_CONTROL);
+# the CapabilityBoundingSet below limits the process to that single capability.
+
+# Note: DynamicUser= was tried first but the classic dbus-daemon fails to
+# authenticate its transient synthetic UID against the system bus (connection
+# dies with BrokenPipe immediately). A static system user avoids that and also
+# lets the D-Bus policy restrict bus-name ownership to exactly this user.
+User=bt-rssi
+Group=bt-rssi
 AmbientCapabilities=CAP_NET_ADMIN
 CapabilityBoundingSet=CAP_NET_ADMIN
-
-# DynamicUser was tried here but the classic dbus-daemon on this system fails
-# to authenticate its transient synthetic UID against the system bus
-# (connection dies with BrokenPipe immediately). Runs as root instead;
-# CapabilityBoundingSet below still limits it to CAP_NET_ADMIN only.
 
 # Hardening
 NoNewPrivileges=true
@@ -26,6 +30,7 @@ ProtectHome=true
 PrivateTmp=true
 RestrictSUIDSGID=true
 SystemCallFilter=@system-service
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target
