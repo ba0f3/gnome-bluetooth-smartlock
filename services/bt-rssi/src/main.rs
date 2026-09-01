@@ -18,6 +18,13 @@ use zbus::{connection, interface, object_server::SignalEmitter};
 
 const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Upper bound on concurrently monitored devices. The D-Bus interface is
+/// unauthenticated (any local user may call StartMonitoring), and each
+/// monitor pins a file descriptor and periodically spawns a blocking HCI
+/// read — without this cap an unprivileged user could exhaust the root
+/// service's resources.
+const MAX_MONITORS: usize = 8;
+
 const DBUS_NAME: &str = "org.gnome.BluetoothRSSI";
 const DBUS_PATH: &str = "/org/gnome/BluetoothRSSI";
 
@@ -39,12 +46,22 @@ impl BtRssiService {
         interval_seconds: u32,
         hci_index: u16,
     ) -> zbus::fdo::Result<()> {
+        // Reject malformed addresses before spawning any background work.
+        hci::parse_mac(&address).map_err(|_| {
+            zbus::fdo::Error::InvalidArgs(format!("invalid Bluetooth address: {address:?}"))
+        })?;
+
         let mut tasks = self.tasks.lock().await;
 
         // Stop existing monitor for this address so we can restart
-        // with a (possibly different) interval.
+        // with a (possibly different) interval. Restarts of an already
+        // monitored address do not consume the monitor cap.
         if let Some(handle) = tasks.remove(&address) {
             handle.abort();
+        } else if tasks.len() >= MAX_MONITORS {
+            return Err(zbus::fdo::Error::LimitsExceeded(format!(
+                "too many concurrent monitors (max {MAX_MONITORS})"
+            )));
         }
 
         let addr      = address.clone();

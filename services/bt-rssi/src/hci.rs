@@ -71,7 +71,10 @@ impl From<io::Error> for RssiError {
 
 /// Parse "AA:BB:CC:DD:EE:FF" into a little-endian 6-byte array as BlueZ
 /// expects (reversed byte order relative to the human-readable string).
-fn parse_mac(mac: &str) -> Result<[u8; 6], RssiError> {
+///
+/// Public so the D-Bus layer can validate caller-supplied addresses before
+/// spawning any background work (see `start_monitoring` in main.rs).
+pub fn parse_mac(mac: &str) -> Result<[u8; 6], RssiError> {
     let parts: Vec<&str> = mac.split(':').collect();
     if parts.len() != 6 {
         return Err(RssiError::InvalidAddress(mac.to_owned()));
@@ -243,5 +246,42 @@ pub fn read_rssi_blocking(mac: &str, hci_index: u16) -> Result<(i8, i8), RssiErr
             MGMT_STATUS_PERMISSION_DENIED => Err(RssiError::PermissionDenied),
             s => Err(RssiError::MgmtStatus(s)),
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ok(mac: &str) -> [u8; 6] {
+        parse_mac(mac).unwrap()
+    }
+
+    #[test]
+    fn parses_valid_mac_little_endian() {
+        assert_eq!(ok("AA:BB:CC:DD:EE:FF"), [0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA]);
+        assert_eq!(ok("00:11:22:33:44:55"), [0x55, 0x44, 0x33, 0x22, 0x11, 0x00]);
+    }
+
+    #[test]
+    fn rejects_wrong_part_count() {
+        assert!(parse_mac("AA:BB:CC:DD:EE").is_err());
+        assert!(parse_mac("AA:BB:CC:DD:EE:FF:00").is_err());
+        assert!(parse_mac("").is_err());
+        assert!(parse_mac("::::::").is_err());
+    }
+
+    #[test]
+    fn rejects_non_hex_octets() {
+        assert!(parse_mac("GG:BB:CC:DD:EE:FF").is_err());
+        assert!(parse_mac("AA:BB:CC:DD:EE:ZZ").is_err());
+        assert!(parse_mac("AA:BB:CC:DD:EE:F").is_err());
+    }
+
+    #[test]
+    fn rejects_lowercase_and_whitespace_variants() {
+        assert!(parse_mac("aa:bb:cc:dd:ee:ff").is_ok());
+        assert!(parse_mac(" AA:BB:CC:DD:EE:FF").is_err());
+        assert!(parse_mac("AA:BB:CC:DD:EE:F ").is_err());
     }
 }
