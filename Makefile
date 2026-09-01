@@ -28,3 +28,27 @@ dev: build
 clean:
 	rm -f schemas/gschemas.compiled
 	rm -f bluetooth-smartlock@ba0f3.github.com.shell-extension.zip
+
+# ── bt-rssi D-Bus service ───────────────────────────────────────────────────
+SERVICE_DIR     := services/bt-rssi
+SERVICE_VERSION := $(shell awk -F'"' '/^version/ {print $$2; exit}' $(SERVICE_DIR)/Cargo.toml)
+SERVICE_BIN     := $(SERVICE_DIR)/target/release/bt-rssi
+SERVICE_STAGE   := $(CURDIR)/bt-rssi-$(SERVICE_VERSION)
+SERVICE_TARBALL := bt-rssi-$(SERVICE_VERSION).tar.gz
+
+.PHONY: service-build service-dist
+
+service-build:
+	cd $(SERVICE_DIR) && cargo build --release
+
+service-dist: service-build tools/install-bt-rssi.sh
+	rm -rf $(SERVICE_STAGE) $(SERVICE_TARBALL)
+	mkdir -p $(SERVICE_STAGE)
+	install -Dm755 $(SERVICE_BIN)                                          $(SERVICE_STAGE)/usr/local/bin/bt-rssi
+	install -Dm644 $(CURDIR)/services/bt-rssi.service                       $(SERVICE_STAGE)/etc/systemd/system/bt-rssi.service
+	install -Dm644 $(CURDIR)/services/org.gnome.BluetoothRSSI.conf         $(SERVICE_STAGE)/etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf
+	install -Dm644 $(CURDIR)/services/org.gnome.BluetoothRSSI.dbus-service $(SERVICE_STAGE)/usr/share/dbus-1/system-services/org.gnome.BluetoothRSSI.service
+	install -Dm755 $(CURDIR)/tools/install-bt-rssi.sh                      $(SERVICE_STAGE)/install.sh
+	tar -C $(SERVICE_STAGE) -czf $(SERVICE_TARBALL) .
+	rm -rf $(SERVICE_STAGE)
+	@echo "built $(SERVICE_TARBALL)"
