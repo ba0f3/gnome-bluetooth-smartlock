@@ -62,17 +62,22 @@ make install
 ```
 
 Proximity locking also needs the `bt-rssi` service installed on the host.
-Download the matching `bt-rssi-<version>.tar.gz` from the
-[Releases](#releases) section below and run `sudo ./install.sh` from
-inside the extracted tarball.
+Download the matching `.deb` (Debian / Ubuntu) or `.rpm` (Fedora / RHEL)
+from the [Releases](#releases) section below and install with
+`sudo apt install ./bt-rssi_*.deb` (or `sudo dnf install ./bt-rssi-*.rpm`).
+The tarball + `install.sh` path is the fallback for other distros.
 
 ## Releases
 
-Each GitHub release publishes two artifacts:
+Each GitHub release publishes four artifacts:
 
 - `bluetooth-smartlock@ba0f3.github.com.shell-extension.zip` — the
   GNOME Shell extension, installable with `gnome-extensions install`.
 - `bt-rssi-<version>.tar.gz` — the RSSI D-Bus service, installable
   with `sudo ./install.sh` (see [`services/README.md`](services/README.md)).
+- `bt-rssi-<version>_amd64.deb` — Debian / Ubuntu package, installable
+  with `sudo apt install ./<file>.deb`.
+- `bt-rssi-<version>-1.<arch>.rpm` — Fedora / RHEL package,
+  installable with `sudo dnf install ./<file>.rpm`.
 
 Find both at <https://github.com/ba0f3/gnome-bluetooth-smartlock/releases>.
