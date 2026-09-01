@@ -77,6 +77,24 @@ Or with [pixi](https://prefix.dev/):
 pixi run build
 ```
 
+## Native packages (Debian / Ubuntu / Fedora / RHEL)
+
+```sh
+# Debian / Ubuntu
+sudo apt install ./bt-rssi_<version>_amd64.deb
+
+# Fedora / RHEL
+sudo dnf install ./bt-rssi-<version>-1.<arch>.rpm
+```
+
+The package installs the binary to `/usr/bin/`, the systemd unit to
+`/usr/lib/systemd/system/`, and the D-Bus files to their canonical
+paths. Post-install hooks enable and start `bt-rssi.service`.
+
+For non-Debian / non-RHEL distros, or when you want the install
+location to be `/usr/local/` and `/etc/systemd/system/`, use the
+tarball + `install.sh` path below instead.
+
 ## Install / Uninstall
 
 ### From a release tarball (end users)
