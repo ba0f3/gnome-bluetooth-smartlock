@@ -2,3 +2,5 @@
 *.zip
 *.mo
 *.po~
+services/bt-rssi/target/
+bt-rssi-*.tar.gz
