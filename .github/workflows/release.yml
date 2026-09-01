@@ -37,6 +37,26 @@ jobs:
       - name: Package bt-rssi service
         run: make service-dist
 
+      - name: Install cargo packagers
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            dpkg-dev rpm
+          cargo install cargo-deb cargo-rpm
+
+      - name: Build .deb and .rpm
+        run: make service-package
+
+      - name: Locate package artifacts
+        id: pkg
+        run: |
+          echo "deb=$(ls services/bt-rssi/target/debian/*.deb)" \
+               >> "$GITHUB_OUTPUT"
+          echo "rpm=$(find services/bt-rssi/target/generate-rpm -name '*.rpm' | head -n1)" \
+               >> "$GITHUB_OUTPUT"
+
       # Use gh instead of a third-party action so local `act` does not need to git-clone actions (avoids host GitHub auth issues).
       - name: Publish GitHub Release
         env:
@@ -49,4 +69,6 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             bluetooth-smartlock@ba0f3.github.com.shell-extension.zip \
             bt-rssi-*.tar.gz \
+            ${{ steps.pkg.outputs.deb }} \
+            ${{ steps.pkg.outputs.rpm }} \
             --generate-notes
