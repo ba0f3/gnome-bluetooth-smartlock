@@ -8,6 +8,6 @@ name = "bt-rssi"
 path = "src/main.rs"
 
 [dependencies]
-zbus     = "5"
+zbus     = { version = "5", features = ["tokio"] }
 tokio    = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 libc     = "0.2"
