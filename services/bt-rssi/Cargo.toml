@@ -11,3 +11,26 @@ path = "src/main.rs"
 zbus     = { version = "5", features = ["tokio"] }
 tokio    = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 libc     = "0.2"
+
+[package.metadata.deb]
+maintainer            = "ba0f3 <noreply@github.com>"
+copyright             = "2026, ba0f3"
+license-file          = ["../../LICENSE", "0"]
+depends               = ["$auto", "systemd", "dbus"]
+section               = "net"
+priority              = "optional"
+extended-description  = """\
+Bluetooth RSSI D-Bus service for gnome-bluetooth-smartlock. Exposes
+org.gnome.BluetoothRSSI on the system bus so the GNOME Shell extension
+can read RSSI values for already-paired Bluetooth devices. Requires
+CAP_NET_ADMIN (granted by the bundled systemd unit).\
+"""
+assets = [
+    ["target/release/bt-rssi",                                  "usr/bin/bt-rssi",                                              "755"],
+    ["../../services/bt-rssi.service",                           "lib/systemd/system/bt-rssi.service",                           "644"],
+    ["../../services/org.gnome.BluetoothRSSI.conf",              "etc/dbus-1/system.d/org.gnome.BluetoothRSSI.conf",             "644"],
+    ["../../services/org.gnome.BluetoothRSSI.dbus-service",      "share/dbus-1/system-services/org.gnome.BluetoothRSSI.service", "644"],
+]
+
+[package.metadata.rpm]
+spec = "rpm/bt-rssi.spec"
