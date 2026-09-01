@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+systemctl daemon-reload
+systemctl reload dbus.service 2>/dev/null || true
+
+if [ -d /run/systemd/system ]; then
+    systemctl enable bt-rssi.service  >/dev/null 2>&1 || true
+    systemctl restart bt-rssi.service >/dev/null 2>&1 || true
+fi
+
+exit 0

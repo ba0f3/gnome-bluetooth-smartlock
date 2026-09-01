@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+if [ -d /run/systemd/system ]; then
+    systemctl disable --now bt-rssi.service 2>/dev/null || true
+fi
+
+exit 0
