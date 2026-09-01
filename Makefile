@@ -52,3 +52,14 @@ service-dist: service-build tools/install-bt-rssi.sh
 	tar -C $(SERVICE_STAGE) -czf $(SERVICE_TARBALL) .
 	rm -rf $(SERVICE_STAGE)
 	@echo "built $(SERVICE_TARBALL)"
+
+# ── native packages ──────────────────────────────────────────────────────────
+.PHONY: service-package-deb service-package-rpm service-package
+
+service-package-deb: service-build
+	cd $(SERVICE_DIR) && cargo deb
+
+service-package-rpm: service-build
+	cd $(SERVICE_DIR) && cargo rpm build
+
+service-package: service-package-deb service-package-rpm
